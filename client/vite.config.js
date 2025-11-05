@@ -16,7 +16,7 @@ export default defineConfig({
     proxy: {
       // /api se shuru hone wale sabhi requests ko 5000 par bhej do
       "/api": {
-        target: "http://127.0.0.1:5000",
+        target: "https://clyroo-server.onrender.com",
         changeOrigin: true, // Zaroori hai
       },
     },
