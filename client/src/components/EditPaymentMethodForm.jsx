@@ -5,7 +5,7 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Switch } from '@/components/ui/switch.jsx'; // Switch component import karein
+import { Switch } from '@/components/ui/switch.jsx';
 import {
     Dialog,
     DialogContent,
@@ -19,23 +19,21 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
     const [name, setName] = useState('');
     const [apiCode, setApiCode] = useState('');
     const [iconUrl, setIconUrl] = useState('');
-    const [isEnabled, setIsEnabled] = useState(true); // Naya state toggle ke liye
+    const [isEnabled, setIsEnabled] = useState(true);
     const [error, setError] = useState(null);
     const token = localStorage.getItem('adminToken');
 
-    // Jab 'method' prop badle, form ko us data se bharein
     useEffect(() => {
         if (method) {
             setName(method.name || '');
             setApiCode(method.apiCode || '');
             setIconUrl(method.iconUrl || '');
-            setIsEnabled(method.isEnabled); // Toggle state set karein
+            setIsEnabled(method.isEnabled);
         }
-    }, [method]); // Yeh tab run hoga jab 'method' prop update hoga
+    }, [method]);
 
     if (!method) return null;
 
-    // Save button click handler
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -47,13 +45,13 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
                     name,
                     apiCode,
                     iconUrl,
-                    isEnabled, // Toggle state bhi bhejein
+                    isEnabled,
                 },
                 { headers: { 'x-auth-token': token } }
             );
 
-            onMethodChange(); // Parent ko batayein ki data badal gaya hai
-            onClose(); // Popup band karein
+            onMethodChange();
+            onClose();
 
         } catch (err) {
             setError(err.response?.data?.msg || "Update failed.");
@@ -80,10 +78,10 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
                     </div>
                     <div>
                         <Label htmlFor="edit-method-icon">Icon URL</Label>
-                        <Input id="edit-method-icon" value={iconUrl} onChange={(e) => setIconUrl(e.g.target.value)} placeholder="e.g., /images/coins/usdt.svg" />
+                        {/* --- YEH LINE AB FIX HO GAYI HAI --- */}
+                        <Input id="edit-method-icon" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="e.g., /images/coins/usdt.svg" />
                     </div>
 
-                    {/* Naya Toggle Switch */}
                     <div className="flex items-center justify-between p-3 bg-background rounded-md border border-border">
                         <Label htmlFor="edit-method-enabled" className="text-base">
                             Enabled
