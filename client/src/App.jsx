@@ -4,16 +4,14 @@ import React from 'react';
 import { Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage.jsx';
 import ProductDetailPage from './pages/ProductDetailPage.jsx';
-// import ConfirmationPage from './pages/ConfirmationPage.jsx';
+import ConfirmationPage from './pages/ConfirmationPage.jsx'; // <-- Naya page import karein
 import LoginPage from './pages/LoginPage.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import AdminRoute from './components/AdminRoute.jsx';
 import AdminDashboardPage from './pages/AdminDashboardPage.jsx';
 import PaymentSelectPage from './pages/PaymentSelectPage.jsx';
-import BinancePaymentPage from './pages/BinancePaymentPage.jsx';
 import NowPaymentsPage from './pages/NowPaymentsPage.jsx';
 import OrderSuccessPage from './pages/OrderSuccessPage.jsx';
-import ManualPaymentPage from './pages/ManualPaymentPage.jsx';
 import { Package, UserCog } from 'lucide-react';
 import { ThemeToggle } from './components/ThemeToggle.jsx';
 import { Button } from '@/components/ui/button.jsx';
@@ -52,15 +50,13 @@ function App() {
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
-          {/* <Route path="/order/:id" element={<ConfirmationPage />} /> */}
 
           <Route path="/order/success/:id" element={<OrderSuccessPage />} />
 
           {/* Payment Routes */}
           <Route path="/order/:id/pay" element={<PaymentSelectPage />} />
-          <Route path="/order/:id/binance" element={<BinancePaymentPage />} />
+          <Route path="/order/:id/confirm" element={<ConfirmationPage />} /> {/* <-- Naya route add karein */}
           <Route path="/order/:id/nowpayments" element={<NowPaymentsPage />} />
-          <Route path="/order/:id/manual" element={<ManualPaymentPage />} />
 
           {/* Admin Auth Routes */}
           <Route path="/login" element={<LoginPage />} />

@@ -9,9 +9,10 @@ import AddCredentialForm from '@/components/AddCredentialForm.jsx';
 import ManageCredentials from '@/components/ManageCredentials.jsx';
 import ManageProducts from '@/components/ManageProducts.jsx';
 import EditProductForm from '@/components/EditProductForm.jsx';
-import PaymentSettings from '@/components/PaymentSettings.jsx';
-import ApprovePayments from '@/components/ApprovePayments.jsx';
+import ManagePaymentMethods from '@/components/ManagePaymentMethods.jsx';
+import AddPaymentMethodForm from '@/components/AddPaymentMethodForm.jsx';
 import EditCredentialForm from '@/components/EditCredentialForm.jsx';
+import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx'; // <-- Naya popup import karein
 import { Loader2 } from 'lucide-react';
 
 const AdminDashboardPage = () => {
@@ -23,7 +24,14 @@ const AdminDashboardPage = () => {
     const [isCredEditOpen, setIsCredEditOpen] = useState(false);
     const [editingCredential, setEditingCredential] = useState(null);
 
-    // ManageCredentials component ko control karne ke liye
+    const [paymentMethods, setPaymentMethods] = useState([]);
+    const [loadingMethods, setLoadingMethods] = useState(true);
+    const managePaymentMethodsRef = useRef(null);
+
+    // --- NAYE STATE EDIT POPUP KE LIYE ---
+    const [isPaymentEditOpen, setIsPaymentEditOpen] = useState(false);
+    const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
+
     const manageCredentialsRef = useRef(null);
 
     const fetchProducts = async () => {
@@ -37,8 +45,23 @@ const AdminDashboardPage = () => {
         }
     };
 
+    const fetchPaymentMethods = async () => {
+        try {
+            const token = localStorage.getItem('adminToken');
+            const res = await axios.get('/api/payment-methods/admin', {
+                headers: { 'x-auth-token': token }
+            });
+            setPaymentMethods(res.data);
+        } catch (err) {
+            console.error("Payment methods fetch nahi ho paye", err);
+        } finally {
+            if (loadingMethods) setLoadingMethods(false);
+        }
+    };
+
     useEffect(() => {
         fetchProducts();
+        fetchPaymentMethods();
     }, []);
 
     const handleEditProduct = (product) => {
@@ -51,12 +74,25 @@ const AdminDashboardPage = () => {
         setIsCredEditOpen(true);
     };
 
+    // --- NAYA FUNCTION EDIT POPUP KHOLNE KE LIYE ---
+    const handleEditPaymentMethod = (method) => {
+        setEditingPaymentMethod(method);
+        setIsPaymentEditOpen(true);
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('adminToken');
         navigate('/login');
     };
 
-    if (loading) {
+    const handlePaymentMethodChange = () => {
+        fetchPaymentMethods();
+        if (managePaymentMethodsRef.current) {
+            managePaymentMethodsRef.current.refreshList();
+        }
+    };
+
+    if (loading || loadingMethods) {
         return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /> Loading...</div>;
     }
 
@@ -84,14 +120,19 @@ const AdminDashboardPage = () => {
                     <ManageCredentials ref={manageCredentialsRef} products={products} onStockChange={fetchProducts} onEdit={handleEditCredential} />
                 </div>
 
-                {/* Column 3: Settings & Approvals */}
+                {/* Column 3: Payment Method Management */}
                 <div className="space-y-8 lg:col-span-1">
-                    <PaymentSettings />
-                    <ApprovePayments />
+                    <AddPaymentMethodForm onMethodChange={handlePaymentMethodChange} />
+                    <ManagePaymentMethods
+                        ref={managePaymentMethodsRef}
+                        paymentMethods={paymentMethods}
+                        onMethodChange={handlePaymentMethodChange}
+                        onEdit={handleEditPaymentMethod} // <-- Edit function ko yahaan pass karein
+                    />
                 </div>
             </div>
 
-            {/* Edit Popup */}
+            {/* Edit Product Popup */}
             {isEditOpen && (
                 <EditProductForm
                     product={editingProduct}
@@ -101,23 +142,31 @@ const AdminDashboardPage = () => {
                 />
             )}
 
+            {/* Edit Credential Popup */}
             {isCredEditOpen && (
                 <EditCredentialForm
                     credential={editingCredential}
                     isOpen={isCredEditOpen}
                     onClose={() => setIsCredEditOpen(false)}
-
-                    // onCredentialChange ko update karein
                     onCredentialChange={() => {
-                        // 1. Product list refresh karein (Stock count ke liye)
                         fetchProducts();
-                        // 2. ManageCredentials component ko direct refresh karein
                         if (manageCredentialsRef.current) {
                             manageCredentialsRef.current.refreshList();
                         }
                     }}
                 />
             )}
+
+            {/* --- NAYA EDIT POPUP RENDER KAREIN --- */}
+            {isPaymentEditOpen && (
+                <EditPaymentMethodForm
+                    method={editingPaymentMethod}
+                    isOpen={isPaymentEditOpen}
+                    onClose={() => setIsPaymentEditOpen(false)}
+                    onMethodChange={handlePaymentMethodChange}
+                />
+            )}
+
         </div>
     );
 };

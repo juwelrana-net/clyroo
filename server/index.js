@@ -11,7 +11,8 @@ const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-const settingsRoutes = require("./routes/settingsRoutes");
+// settingsRoutes ko yahaan se hata diya gaya hai
+const cryptoPaymentRoutes = require("./routes/cryptoPaymentRoutes"); // <-- Naya route
 
 const app = express();
 
@@ -25,7 +26,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-app.use("/api/settings", settingsRoutes);
+// app.use("/api/settings", settingsRoutes); // <-- Puraana route hata diya
+app.use("/api/payment-methods", cryptoPaymentRoutes); // <-- Naya route add kiya
 
 // Database Connection
 mongoose

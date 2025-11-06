@@ -61,7 +61,6 @@ router.post("/create", async (req, res) => {
 
 // ROUTE 2: Get Order Details
 router.get("/:id", async (req, res) => {
-  // ... (Code waisa hi hai, koi change nahi) ...
   try {
     const order = await Order.findById(req.params.id).populate(
       "product",
@@ -78,53 +77,6 @@ router.get("/:id", async (req, res) => {
     if (err.kind === "ObjectId") {
       return res.status(404).json({ msg: "Order not found" });
     }
-    res.status(500).send("Server Error");
-  }
-});
-
-// ROUTE 3: User submits manual payment ("I Have Paid")
-router.post("/submit-manual-payment/:id", async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ msg: "Order not found" });
-    }
-
-    // --- YEH LINE FIX HO GAYI HAI ---
-    // Ab hum "Awaiting-Payment" check karenge (jo agle route se set hoga)
-    if (order.status !== "Awaiting-Payment") {
-      return res
-        .status(400)
-        .json({ msg: "This order cannot be processed manually." });
-    }
-
-    order.status = "Processing"; // Admin approval ke liye set karein
-    await order.save();
-
-    res.json({ msg: "Order submitted for manual verification." });
-  } catch (err) {
-    console.error("Manual submit error:", err);
-    res.status(500).send("Server Error");
-  }
-});
-
-// ROUTE 4: Prepare order for manual payment
-// POST /api/orders/prepare-manual-payment/:id
-router.post("/prepare-manual-payment/:id", async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
-    if (!order) {
-      return res.status(404).json({ msg: "Order not found" });
-    }
-    // Sirf "Pending" order ko hi "Awaiting-Payment" mein daalein
-    if (order.status === "Pending") {
-      order.paymentGateway = "Manual";
-      order.status = "Awaiting-Payment";
-      await order.save();
-    }
-    res.json(order); // Updated order wapas bhejein
-  } catch (err) {
-    console.error("Prepare manual payment error:", err);
     res.status(500).send("Server Error");
   }
 });
@@ -174,12 +126,11 @@ router.get("/complete/:id/token/:token", async (req, res) => {
 
     // Agar order nahi mila (ya token galat hai)
     if (!order) {
-      return res
-        .status(404)
-        .json({ msg: "Order not found or access denied." });
+      return res.status(404).json({ msg: "Order not found or access denied." });
     }
 
     // Agar order "Completed" nahi hai, toh credentials na dikhayein
+    // "Processing" waala check yahaan se hata diya gaya hai
     if (order.status !== "Completed") {
       return res.status(400).json({
         msg: `Your order is ${order.status}. Credentials are not available yet.`,

@@ -6,10 +6,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 
 const Product = require("../models/Product");
 const Credential = require("../models/Credential");
-const Order = require("../models/Order"); // <-- Order model import karein
-const { deliverProduct } = require("../utils/delivery"); // <-- Naya import
+const Order = require("../models/Order");
 
-// ... (Baaki saare product/credential routes waise hi hain) ...
 // ROUTE 1: Add Product...
 router.post("/products", authMiddleware, async (req, res) => {
   const { name, description, price, imageUrl, credentialFields } = req.body;
@@ -156,14 +154,14 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
     if (!product) {
       return res.status(404).json({ msg: "Product not found" });
     }
-    
+
     // Nayi details update karein
     product.name = name;
     product.description = description;
     product.price = price;
     product.imageUrl = imageUrl;
     product.credentialFields = credentialFields;
-    
+
     await product.save();
     res.json(product);
   } catch (err) {
@@ -171,46 +169,5 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
     res.status(500).send("Server Error");
   }
 });
-
-// --- YEH NAYE ROUTES HAIN ---
-// ROUTE 8: Get all orders needing approval
-// GET /api/admin/orders/processing
-router.get("/orders/processing", authMiddleware, async (req, res) => {
-  try {
-    const orders = await Order.find({ status: "Processing" })
-      .populate("product", "name")
-      .sort({ createdAt: 1 }); // Sabse purane pehle
-    res.json(orders);
-  } catch (err) {
-    console.error("Error fetching processing orders:", err);
-    res.status(500).send("Server Error");
-  }
-});
-
-// ROUTE 9: Admin approves a manual payment
-// POST /api/admin/orders/approve/:id
-router.post("/orders/approve/:id", authMiddleware, async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id).populate(
-      "product",
-      "name"
-    );
-    if (!order) {
-      return res.status(404).json({ msg: "Order not found" });
-    }
-    if (order.status !== "Processing") {
-      return res.status(400).json({ msg: "Order is not awaiting approval." });
-    }
-
-    // Product deliver karein (yeh email bhi bhej dega)
-    await deliverProduct(order);
-
-    res.json({ msg: "Order approved and credentials delivered." });
-  } catch (err) {
-    console.error("Approval error:", err);
-    res.status(500).json({ msg: err.message || "Server Error" });
-  }
-});
-// --- NAYE ROUTES KHATAM ---
 
 module.exports = router;

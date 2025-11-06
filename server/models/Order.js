@@ -26,11 +26,9 @@ const OrderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      // --- YEH LINE UPDATE HUI HAI ---
       enum: [
         "Pending",
         "Awaiting-Payment",
-        "Processing",
         "Completed",
         "Cancelled",
       ],

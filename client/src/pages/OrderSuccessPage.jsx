@@ -39,14 +39,9 @@ const OrderSuccessPage = () => {
             } catch (err) {
                 const errMsg = err.response?.data?.msg || "Failed to fetch order details.";
 
-                // Agar order abhi bhi "Processing" hai
-                if (err.response?.data?.status === 'Processing') {
-                    setError("Your order is still processing. Please wait for admin approval. This page will refresh.");
-                    // 5 second baad automatic refresh karein
-                    setTimeout(() => window.location.reload(), 5000);
-                } else {
-                    setError(errMsg);
-                }
+                // "Processing" waala check yahaan se hata diya gaya hai
+                // Ab yeh sirf Awaiting-Payment ya doosre errors ko hi pakdega
+                setError(errMsg);
 
             } finally {
                 setLoading(false);
