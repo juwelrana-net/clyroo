@@ -8,6 +8,9 @@ const Product = require("../models/Product");
 const Credential = require("../models/Credential");
 const Order = require("../models/Order");
 
+// --- YEH NAYA IMPORT ADD KAREIN ---
+const { deliverProduct } = require("../utils/delivery");
+
 // ROUTE 1: Add Product...
 router.post("/products", authMiddleware, async (req, res) => {
   const { name, description, price, imageUrl, credentialFields } = req.body;
@@ -167,6 +170,46 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("Error updating product:", err.message);
     res.status(500).send("Server Error");
+  }
+});
+
+// --- YEH NAYA ROUTE FILE KE END MEIN ADD KAREIN (module.exports se pehle) ---
+
+// ROUTE 8: MOCK (TEST) ORDER DELIVERY
+// Yeh route admin ke liye hai taaki woh manually order ko 'Completed' mark kar sakein
+router.get("/test-delivery/:orderId", authMiddleware, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    
+    // Order ko dhoondhein aur product ka naam bhi le aayein
+    const order = await Order.findById(orderId).populate("product", "name");
+
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
+    if (order.status === "Completed") {
+      return res.status(400).json({ msg: "Order is already completed" });
+    }
+
+    // Server logs mein message daalein
+    console.log(`--- MANUAL TEST DELIVERY ---`);
+    console.log(`Admin ${req.user.id} is forcing delivery for order ${orderId}`);
+
+    // Seedha 'deliverProduct' function ko call karein
+    // Yeh bilkul waisa hi kaam karega jaise NOWPayments ka webhook karta hai
+    await deliverProduct(order);
+
+    // Success message bhejein
+    res.json({
+      msg: "Manual delivery successful. Order is now 'Completed'.",
+      order: order, // Updated order wapas bhej dein
+    });
+
+  } catch (err) {
+    // Agar delivery fail ho (jaise out of stock) toh error log karein
+    console.error("Manual test delivery failed:", err.message);
+    res.status(500).json({ msg: "Test delivery failed", error: err.message });
   }
 });
 
