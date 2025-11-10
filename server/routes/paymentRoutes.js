@@ -63,13 +63,26 @@ router.post("/nowpayments/webhook", async (req, res) => {
     hmac.update(JSON.stringify(req.body, Object.keys(req.body).sort()));
     const signature = hmac.digest("hex");
     if (req.headers["x-nowpayments-sig"] !== signature) {
+      console.error("!!! INVALID WEBHOOK SIGNATURE !!!");
+      console.error(
+        "NOWPayments se mila header:",
+        req.headers["x-nowpayments-sig"]
+      );
+      console.error("Humne jo calculate kiya:", signature);
+
       return res.status(401).send("Invalid Signature");
     }
   } catch (e) {
+    console.error("!!! SIGNATURE VERIFICATION FAILED !!!", e.message);
     return res.status(500).send("Signature verification failed");
   }
 
   const { payment_status, order_id } = req.body;
+
+  console.log(
+    `Webhook received for Order: ${order_id} | Status: ${payment_status}`
+  );
+  
   try {
     // Pehle Order ko dhoondhein
     const order = await Order.findOne({ _id: order_id }).populate(
