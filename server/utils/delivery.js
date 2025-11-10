@@ -59,12 +59,22 @@ const deliverProduct = async (order) => {
 
     // Step 6: Customer ko email bhej dein (saare credentials ke saath)
     const emailSubject = `Your Order from Clyroo is Complete! (Order: ${order._id})`;
+
+    // --- YEH EMAIL BODY UPDATE HUA HAI ---
     const emailHtml = `<h1>Thank you!</h1>
                        <p>Product: <b>${order.product.name}</b></p>
                        <p>Quantity: <b>${order.quantity}</b></p>
                        <hr>
                        <p>Your credentials are below:</p>
-                       ${formattedHtmlString}`;
+                       ${formattedHtmlString}
+                       <hr>
+                       <div style="background-color: #fef9c3; border: 1px solid #fde047; padding: 15px; border-radius: 8px;">
+                         <h3 style="color: #ca8a04; margin-top: 0;">Important: Save these details!</h3>
+                         <p style="color: #713f12;">You will need both your Order ID and Access Token to inquire about your order in the future.</p>
+                         <p style="color: #713f12;"><b>Order ID:</b> ${order._id}</p>
+                         <p style="color: #713f12;"><b>Access Token:</b> ${order.customerAccessToken}</p>
+                       </div>`;
+    // --- EMAIL BODY KHATAM ---
 
     sendEmail(order.customerEmail, emailSubject, emailHtml);
 

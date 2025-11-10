@@ -9,6 +9,7 @@ import {
     AlertCircle,
     CheckCircle,
     Home,
+    AlertTriangle, // <-- Naya icon
 } from "lucide-react";
 import ClipboardCopy from "@/components/ClipboardCopy.jsx";
 
@@ -23,7 +24,7 @@ const OrderSuccessPage = () => {
 
     useEffect(() => {
         if (!customerToken) {
-            setError("Access Denied. Invalid or expired order session.");
+            setError("Access Denied. Invalid or expired order session. Please use the Order Inquiry page."); // <-- Error message update kiya
             setLoading(false);
             return;
         }
@@ -31,18 +32,13 @@ const OrderSuccessPage = () => {
         const fetchCredentials = async () => {
             try {
                 setLoading(true);
-                // Naye secure route ko call karein
                 const res = await axios.get(
                     `/api/orders/complete/${id}/token/${customerToken}`
                 );
                 setOrder(res.data);
             } catch (err) {
                 const errMsg = err.response?.data?.msg || "Failed to fetch order details.";
-
-                // "Processing" waala check yahaan se hata diya gaya hai
-                // Ab yeh sirf Awaiting-Payment ya doosre errors ko hi pakdega
                 setError(errMsg);
-
             } finally {
                 setLoading(false);
             }
@@ -68,18 +64,27 @@ const OrderSuccessPage = () => {
                     Error
                 </h1>
                 <p className="text-muted-foreground mb-6">{error}</p>
-                <Link to="/">
-                    <Button>
-                        <Home size={16} className="mr-2" />
-                        Back to Home
-                    </Button>
-                </Link>
+
+                {/* Inquiry page ka link yahaan add karein */}
+                <div className="flex gap-2 justify-center">
+                    <Link to="/">
+                        <Button>
+                            <Home size={16} className="mr-2" />
+                            Back to Home
+                        </Button>
+                    </Link>
+                    <Link to="/inquiry">
+                        <Button variant="outline">
+                            Go to Order Inquiry
+                        </Button>
+                    </Link>
+                </div>
             </div>
         );
     }
 
     if (!order) {
-        return null; // Aisa nahi hona chahiye, par safety ke liye
+        return null;
     }
 
     // --- Success View ---
@@ -98,6 +103,41 @@ const OrderSuccessPage = () => {
                 </p>
             </div>
 
+            {/* --- NAYA BLOCK: ORDER DETAILS & TOKEN --- */}
+            <div className="bg-yellow-500/10 border border-yellow-500/50 text-yellow-200 p-6 rounded-lg mb-8 space-y-4">
+                <div className="flex items-center gap-3">
+                    <AlertTriangle size={24} className="text-yellow-400" />
+                    <h2 className="text-2xl font-bold text-yellow-300">Save Your Order Details!</h2>
+                </div>
+                <p className="text-yellow-300">
+                    Please save these details. You will need **both** your Order ID and Access Token to retrieve your order in the future.
+                </p>
+
+                {/* Order ID */}
+                <div>
+                    <label className="text-sm font-medium text-yellow-400">Your Order ID</label>
+                    <div className="flex items-center justify-between gap-2 bg-background/50 border border-border/50 rounded-md p-3">
+                        <p className="text-sm font-mono break-all text-foreground">
+                            {order._id}
+                        </p>
+                        <ClipboardCopy textToCopy={order._id} />
+                    </div>
+                </div>
+
+                {/* Access Token */}
+                <div>
+                    <label className="text-sm font-medium text-yellow-400">Your Access Token (Secret)</label>
+                    <div className="flex items-center justify-between gap-2 bg-background/50 border border-border/50 rounded-md p-3">
+                        <p className="text-sm font-mono break-all text-foreground">
+                            {customerToken} {/* Token ko sessionStorage se padhein */}
+                        </p>
+                        <ClipboardCopy textToCopy={customerToken} />
+                    </div>
+                </div>
+            </div>
+            {/* --- NAYA BLOCK KHATAM --- */}
+
+
             {/* Credentials List */}
             <div className="space-y-4">
                 {order.deliveredCredentials.map((cred, index) => (
@@ -109,7 +149,6 @@ const OrderSuccessPage = () => {
                             Product #{index + 1}
                         </h3>
                         <div className="space-y-3">
-                            {/* Mongoose Map ko object mein convert karke iterate karein */}
                             {Object.entries(cred.credentialData).map(([key, value]) => (
                                 <div key={key}>
                                     <label className="text-sm font-medium text-muted-foreground">
