@@ -1,34 +1,37 @@
 // server/utils/sendEmail.js
 
-const nodemailer = require("nodemailer");
+const sgMail = require("@sendgrid/mail");
+
+// .env file se API key set karein
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 const sendEmail = async (to, subject, html) => {
-  // 1. Ek "transporter" create karein (Email service setup)
-  // Hum Gmail istemal kar rahe hain.
-  // IMPORTANT: Aapko Gmail account mein "App Password" generate karna hoga.
-  // https://support.google.com/accounts/answer/185833
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER, // Aapki .env file se
-      pass: process.env.EMAIL_PASS, // Aapki .env file se (App Password)
-    },
-  });
+  // .env file se bhejne waale ka email lein
+  const fromEmail = process.env.SENDGRID_SENDER_EMAIL;
 
-  // 2. Email options define karein
-  const mailOptions = {
-    from: `"Clyroo" <${process.env.EMAIL_USER}>`, // Bhejne wale ka naam aur email
-    to: to, // Paane wale ka email
+  const msg = {
+    to: to, // Paane waala (e.g., customer@gmail.com)
+    from: {
+      email: fromEmail,
+      name: "Clyroo", // Bhejne waale ka naam
+    },
     subject: subject, // Subject line
     html: html, // HTML body
   };
 
-  // 3. Email bhej dein
   try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Email sent successfully: " + info.response);
+    // Email bhej dein
+    await sgMail.send(msg);
+    console.log(`Email sent successfully to ${to}`);
   } catch (error) {
-    console.error("Error sending email: ", error);
+    console.error("Error sending email via SendGrid:");
+
+    // SendGrid ke specific errors ko log karein
+    if (error.response) {
+      console.error(error.response.body);
+    } else {
+      console.error(error);
+    }
   }
 };
 

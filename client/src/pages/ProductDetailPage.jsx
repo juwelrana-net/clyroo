@@ -4,7 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { Input } from '@/components/ui/input.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { AlertCircle, Loader2, Minus, Plus } from 'lucide-react';
 
 // Dialog components ko import karein
 import {
@@ -13,7 +15,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
-} from "@/components/ui/dialog.jsx"; //
+} from "@/components/ui/dialog.jsx";
 
 const ProductDetailPage = () => {
     const { id } = useParams();
@@ -24,8 +26,6 @@ const ProductDetailPage = () => {
     const [email, setEmail] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [isOrdering, setIsOrdering] = useState(false);
-
-    // --- NAYA STATE POPUP KE LIYE ---
     const [isTipsOpen, setIsTipsOpen] = useState(true); // Page load par popup dikhaye
 
     useEffect(() => {
@@ -43,6 +43,16 @@ const ProductDetailPage = () => {
         };
         if (id) { fetchProduct(); }
     }, [id]);
+
+    const handleDecrement = () => {
+        setError(null);
+        setQuantity(prevQty => Math.max(1, prevQty - 1));
+    };
+
+    const handleIncrement = () => {
+        setError(null);
+        setQuantity(prevQty => Math.min(product.stock, prevQty + 1));
+    };
 
     const handleOrder = async () => {
         if (!email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
@@ -65,14 +75,10 @@ const ProductDetailPage = () => {
             });
             const newOrder = response.data;
 
-            // Naye 'customerAccessToken' ko sessionStorage mein save karein
-            // Taa ki success page iska istemal kar sake
             if (newOrder.customerAccessToken) {
                 sessionStorage.setItem(newOrder._id, newOrder.customerAccessToken);
             }
-
-            // Payment selection page par bhejein
-            navigate(`/order/${newOrder._id}/pay`); //
+            navigate(`/order/${newOrder._id}/pay`);
 
         } catch (err) {
             console.error("Order creation failed:", err.response?.data?.msg || err.message);
@@ -87,9 +93,11 @@ const ProductDetailPage = () => {
     if (!product) return <div className="container mx-auto max-w-7xl px-4 py-8 text-muted-foreground">Product not found.</div>;
 
     return (
-        <div className="container mx-auto max-w-4xl px-4 py-12">
+        // --- UI UPDATE ---
+        // Max width ko thoda chhota kiya (max-w-2xl)
+        <div className="container mx-auto max-w-2xl px-4 py-12">
 
-            {/* --- NAYA "BUYING TIPS" POPUP --- */}
+            {/* "BUYING TIPS" POPUP (waisa hi hai) */}
             <Dialog open={isTipsOpen} onOpenChange={setIsTipsOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
@@ -111,52 +119,95 @@ const ProductDetailPage = () => {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            {/* --- POPUP KHATAM --- */}
 
+            {/* --- UI UPDATE ---
+            // 1. Layout ko "flex-col" kiya (hamesha vertical)
+            // 2. Padding badhayi (p-10)
+            // 3. Radius ko "rounded-2xl" kiya (global CSS se double)
+            // 4. Image aur details ke beech gap badhaya (gap-10)
+            */}
+            <div className="bg-secondary/30 border border-border/50 rounded-2xl shadow-xl p-6 md:p-10 flex flex-col gap-6 md:gap-10">
 
-            <div className="bg-secondary/30 border border-border rounded-lg shadow-xl p-8 flex flex-col md:flex-row gap-8">
                 {/* Image Section */}
-                <div className="md:w-1/2 flex justify-center items-center">
+                <div className="w-full flex justify-center items-center h-48 md:h-64 bg-muted/50 rounded-2xl p-4">
                     <img
                         src={product.imageUrl || `https://placehold.co/600x400/000000/FFFFFF?text=${product.name}`}
                         alt={product.name}
-                        className="rounded-lg object-cover max-h-96 w-full"
+                        className="rounded-lg object-contain max-h-full w-full"
                     />
                 </div>
+
                 {/* Details Section */}
-                <div className="md:w-1/2">
-                    <h1 className="text-3xl font-bold text-foreground mb-4">{product.name}</h1>
+                <div className="w-full flex flex-col items-center">
+
+                    {/* Title */}
+                    <h1 className="text-4xl font-bold text-foreground text-center mb-4">{product.name}</h1>
+
+                    {/* Price & Stock */}
                     <div className="flex items-center gap-4 mb-6">
-                        <span className="text-4xl font-extrabold text-primary">${product.price.toFixed(2)}</span>
+                        <span className="text-5xl font-extrabold text-primary">${product.price.toFixed(2)}</span>
                         <span className={`text-sm font-medium px-3 py-1 rounded-full ${product.stock > 0 ? 'bg-green-500/20 text-green-400' : 'bg-destructive/20 text-destructive'}`}>
                             Stock: {product.stock}
                         </span>
                     </div>
-                    <p className="text-muted-foreground mb-6">{product.description}</p>
-                    <div className="space-y-4">
+
+                    {/* Description */}
+                    <p className="text-muted-foreground mb-8 text-center max-w-md">
+                        {product.description}
+                    </p>
+
+                    {/* Form Area (width set kiya) */}
+                    <div className="space-y-4 w-full max-w-md">
                         {error && (
                             <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3">
                                 <AlertCircle size={20} />{error}
                             </div>
                         )}
                         <div>
-                            <label htmlFor="email" className="block text-sm font-medium text-muted-foreground mb-1">Contact Email</label>
-                            <input
+                            <Label htmlFor="email" className="block text-sm font-medium text-muted-foreground mb-1">Contact Email</Label>
+                            <Input
                                 type="email" id="email" value={email}
                                 onChange={(e) => { setEmail(e.target.value); setError(null); }}
                                 placeholder="Enter your email address"
-                                className="w-full p-3 border border-border bg-background rounded-md focus:ring-primary focus:border-primary"
+                                className="w-full p-3 border border-border bg-background rounded-lg focus:ring-primary focus:border-primary"
                             />
                         </div>
+
+                        {/* Quantity Buttons */}
                         <div>
-                            <label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</label>
-                            <input
-                                type="number" id="quantity" value={quantity} min="1" max={product.stock}
-                                onChange={(e) => { setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1))); setError(null); }}
-                                className="w-full p-3 border border-border bg-background rounded-md focus:ring-primary focus:border-primary"
-                                disabled={product.stock === 0}
-                            />
+                            <Label htmlFor="quantity" className="block text-sm font-medium text-muted-foreground mb-1">Quantity</Label>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-10 w-10 flex-shrink-0"
+                                    onClick={handleDecrement}
+                                    disabled={quantity <= 1 || product.stock === 0}
+                                >
+                                    <Minus size={16} />
+                                </Button>
+                                <Input
+                                    id="quantity"
+                                    type="text"
+                                    value={quantity}
+                                    readOnly
+                                    className="w-full text-center font-bold text-lg p-3 border border-border bg-background rounded-lg"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-10 w-10 flex-shrink-0"
+                                    onClick={handleIncrement}
+                                    disabled={quantity >= product.stock || product.stock === 0}
+                                >
+                                    <Plus size={16} />
+                                </Button>
+                            </div>
                         </div>
+
+                        {/* Pay Button */}
                         <Button
                             className="w-full py-3 text-lg"
                             onClick={handleOrder}
@@ -166,7 +217,9 @@ const ProductDetailPage = () => {
                             {isOrdering ? 'Creating Order...' : product.stock > 0 ? `Proceed to Pay ($${(product.price * quantity).toFixed(2)})` : 'Out of Stock'}
                         </Button>
                     </div>
-                    <Button variant="link" className="w-full mt-4 text-muted-foreground" onClick={() => setIsTipsOpen(true)}>
+
+                    {/* Buying Tips Button */}
+                    <Button variant="link" className="w-full mt-6 text-muted-foreground" onClick={() => setIsTipsOpen(true)}>
                         Show Buying Tips
                     </Button>
                 </div>
