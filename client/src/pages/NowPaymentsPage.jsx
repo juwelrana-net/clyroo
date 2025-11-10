@@ -74,21 +74,37 @@ const NowPaymentsPage = () => {
             try {
                 // Hum /api/orders/status route ka istemal karenge
                 const res = await axios.get(`/api/orders/status/${id}`);
+                const newStatus = res.data.status;
 
-                if (res.data.status === 'Completed') {
-                    setOrderStatus('Completed');
+                // 1. Agar payment poora ho gaya
+                if (newStatus === 'Completed') {
                     clearInterval(interval);
-
-                    // Puraana session data clear kar dein (optional, par achha hai)
                     sessionStorage.removeItem(`order_${id}_details`);
                     sessionStorage.removeItem(`order_${id}_method`);
                     sessionStorage.removeItem(`order_${id}_invoice`);
-
-                    // Naye success page par redirect karein
-                    navigate(`/order/success/${id}`);
+                    navigate(`/order/success/${id}`); // Success page par jao
                 }
+
+                // 2. Agar payment fail ho gaya ya aadha hua
+                if (newStatus === 'Partially_paid' || newStatus === 'Failed' || newStatus === 'Expired') {
+                    clearInterval(interval); // Polling band karo
+
+                    if (newStatus === 'Partially_paid') {
+                        setError("Payment was partially paid. The seller has been notified. Please contact support.");
+                    } else if (newStatus === 'Expired') {
+                        setError("Payment session expired. Please go back and try again.");
+                    } else {
+                        setError("Payment failed. Please go back and try again.");
+                    }
+                }
+
+                // Agar status abhi bhi "Awaiting-Payment" hai, toh polling chalti rahegi...
+
             } catch (err) {
+                // Agar order hi delete ho gaya (ya koi aur error)
+                clearInterval(interval);
                 console.error("Polling error:", err);
+                setError("An error occurred while checking status. Please refresh.");
             }
         }, 5000); // Har 5 second mein check karein
 

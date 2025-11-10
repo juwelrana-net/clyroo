@@ -71,19 +71,54 @@ router.post("/nowpayments/webhook", async (req, res) => {
 
   const { payment_status, order_id } = req.body;
   try {
+    // Pehle Order ko dhoondhein
+    const order = await Order.findOne({ _id: order_id }).populate(
+      "product",
+      "name"
+    );
+
+    // Agar order nahi mila, toh bas OK bhej dein
+    if (!order) {
+      return res.status(200).send("Webhook received, order not found.");
+    }
+
+    // Agar order pehle se hi 'Completed' ya 'Failed' hai, toh kuchh mat karo
+    if (
+      order.status === "Completed" ||
+      order.status === "Failed" ||
+      order.status === "Partially_paid"
+    ) {
+      return res
+        .status(200)
+        .send("Webhook received, but order already processed or failed.");
+    }
+
+    // --- MAIN LOGIC YAHAN HAI ---
+
+    // 1. Agar payment poora ho gaya
     if (payment_status === "finished") {
-      const order = await Order.findOne({ _id: order_id }).populate(
-        "product",
-        "name"
-      );
-      if (order && order.status === "Awaiting-Payment") {
-        await deliverProduct(order);
-        res.status(200).send("Webhook received and processed.");
+      if (order.status === "Awaiting-Payment") {
+        await deliverProduct(order); // Product deliver karein
+        res.status(200).send("Webhook received and processed (Finished).");
       } else {
-        res.status(200).send("Webhook received, but order already processed.");
+        res
+          .status(200)
+          .send("Webhook received, but order was in unexpected state.");
       }
+
+      // 2. Agar payment poora nahi hua ya fail ho gaya
+      // (e.g., "partially_paid", "failed", "expired")
     } else {
-      res.status(200).send(`Webhook received with status: ${payment_status}`);
+      // Order status ko wahi set kar do jo NOWPayments ne bheja hai
+      // (Jaise "Partially_paid", "Failed", "Expired")
+      order.status = payment_status;
+      await order.save();
+
+      res
+        .status(200)
+        .send(
+          `Webhook received and order status updated to ${payment_status}.`
+        );
     }
   } catch (err) {
     console.error("NOWPayments Webhook DB Error:", err);
