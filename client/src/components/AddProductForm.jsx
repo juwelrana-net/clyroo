@@ -80,7 +80,7 @@ const AddProductForm = ({ onProductChange }) => {
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="AWS 8v Japan-Tokyo" required />
                 </div>
                 <div>
-                    <Label htmlFor="price">Price ($)</Label>
+                    <Label htmlFor="price">Price (USDT)</Label>
                     <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="5.00" required />
                 </div>
                 <div>

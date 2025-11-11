@@ -26,8 +26,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/orders", orderRoutes);
 app.use("/api/payment", paymentRoutes);
-// app.use("/api/settings", settingsRoutes); // <-- Puraana route hata diya
-app.use("/api/payment-methods", cryptoPaymentRoutes); // <-- Naya route add kiya
+app.use("/api/payment-methods", cryptoPaymentRoutes);
 
 // Database Connection
 mongoose
@@ -39,6 +38,21 @@ mongoose
 app.get("/", (req, res) => {
   res.send("Server is running");
 });
+
+
+// --- YEH NAYA TEMPORARY DEBUG ROUTE ADD KAREIN ---
+// WARNING: Isse sirf testing ke liye rakhein, fir delete kar dein!
+app.get("/secret-check-debug", (req, res) => {
+  const secret = process.env.NOWPAYMENTS_IPN_SECRET;
+  res.send({
+    // Poora secret nahi dikhayenge, sirf shuru aur aakhir ka part
+    secret_from_server_start: secret ? secret.substring(0, 8) : "NOT_SET", 
+    secret_from_server_end: secret ? secret.slice(-4) : "NOT_SET",
+    // Poora secret bhi bhej dete hain taaki aap copy kar saken
+    full_secret_for_copy: secret, 
+  });
+});
+// --- DEBUG ROUTE KHATAM ---
 
 const PORT = process.env.PORT || 5000;
 

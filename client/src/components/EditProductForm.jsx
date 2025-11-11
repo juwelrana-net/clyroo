@@ -100,7 +100,7 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange }) => {
                         <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
                     <div>
-                        <Label htmlFor="edit-price">Price ($)</Label>
+                        <Label htmlFor="edit-price">Price (USDT)</Label>
                         <Input id="edit-price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} required />
                     </div>
                     <div>
