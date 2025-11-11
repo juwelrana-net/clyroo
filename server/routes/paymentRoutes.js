@@ -31,7 +31,7 @@ router.post("/nowpayments/create", async (req, res) => {
       `${NOWPAYMENTS_API_URL}/payment`,
       {
         price_amount: order.priceAtPurchase.toFixed(2),
-        price_currency: "usdt",
+        price_currency: coinApiCode,
         pay_currency: coinApiCode, // <-- Hardcoded "usdterc20" ko 'coinApiCode' se badal diya
         order_id: order._id.toString(),
         ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
