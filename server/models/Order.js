@@ -34,6 +34,7 @@ const OrderSchema = new mongoose.Schema(
         "Partially_paid",
         "Failed",
         "Expired",
+        "waiting",
       ],
       default: "Pending",
     },
