@@ -64,7 +64,8 @@ router.post("/nowpayments/webhook", async (req, res) => {
   // ... (Yeh code waisa hi hai, koi change nahi) ...
   try {
     const hmac = crypto.createHmac("sha512", NOWPAYMENTS_IPN_SECRET);
-    hmac.update(JSON.stringify(req.body, Object.keys(req.body).sort()));
+    // hum seedha raw body use karenge
+    hmac.update(req.rawBody);
     const signature = hmac.digest("hex");
     if (req.headers["x-nowpayments-sig"] !== signature) {
       console.error("!!! INVALID WEBHOOK SIGNATURE !!!");
