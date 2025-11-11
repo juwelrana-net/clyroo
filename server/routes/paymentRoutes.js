@@ -35,6 +35,11 @@ router.post("/nowpayments/create", async (req, res) => {
         pay_currency: coinApiCode, // <-- Hardcoded "usdterc20" ko 'coinApiCode' se badal diya
         order_id: order._id.toString(),
         ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
+
+        // --- YEH NAYI LINE ADD KAREIN ---
+        is_fee_paid_by_user: true,
+        // --- NAYI LINE KHATAM ---
+        
       },
       { headers: { "x-api-key": NOWPAYMENTS_API_KEY } }
     );
