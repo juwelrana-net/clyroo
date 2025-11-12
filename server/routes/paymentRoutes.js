@@ -87,7 +87,7 @@ router.post("/nowpayments/webhook", async (req, res) => {
   console.log(
     `Webhook received for Order: ${order_id} | Status: ${payment_status}`
   );
-  
+
   try {
     // Pehle Order ko dhoondhein
     const order = await Order.findOne({ _id: order_id }).populate(
@@ -104,8 +104,11 @@ router.post("/nowpayments/webhook", async (req, res) => {
     if (
       order.status === "Completed" ||
       order.status === "Failed" ||
-      order.status === "Partially_paid"
+      order.status === "Partially_paid" ||
+      order.status === "Cancelled" || // Safety check
+      order.status === "Expired"
     ) {
+      // Safety check
       return res
         .status(200)
         .send("Webhook received, but order already processed or failed.");
@@ -114,18 +117,12 @@ router.post("/nowpayments/webhook", async (req, res) => {
     // --- MAIN LOGIC YAHAN HAI ---
 
     // 1. Agar payment poora ho gaya
-    if (payment_status === "finished") {
-      if (order.status === "Awaiting-Payment") {
-        await deliverProduct(order); // Product deliver karein
-        res.status(200).send("Webhook received and processed (Finished).");
-      } else {
-        res
-          .status(200)
-          .send("Webhook received, but order was in unexpected state.");
-      }
+    if (payment_status === "finished" || payment_status === "confirmed") {
+      // Agar yahaan tak pahunche hain, toh order abhi tak deliver nahi hua hai.
+      // Delivery shuru karein (delivery.js status ko "Completed" mark kar dega)
+      await deliverProduct(order);
 
-      // 2. Agar payment poora nahi hua ya fail ho gaya
-      // (e.g., "partially_paid", "failed", "expired")
+      return res.status(200).send("Webhook received and product delivered.");
     } else {
       // Order status ko wahi set kar do jo NOWPayments ne bheja hai
       // (Jaise "Partially_paid", "Failed", "Expired")
