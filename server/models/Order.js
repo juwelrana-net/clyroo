@@ -35,6 +35,7 @@ const OrderSchema = new mongoose.Schema(
         "Failed",
         "Expired",
         "waiting",
+        "sending",
       ],
       default: "Pending",
     },
