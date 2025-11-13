@@ -1,7 +1,8 @@
 // client/src/pages/AdminDashboardPage.jsx
 
 import React, { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+// import axios from 'axios'; // <-- YEH LINE HATA DEIN
+import api from '@/lib/api.js'; // <-- YEH NAYI LINE ADD KAREIN
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import AddProductForm from '@/components/AddProductForm.jsx';
@@ -12,8 +13,11 @@ import EditProductForm from '@/components/EditProductForm.jsx';
 import ManagePaymentMethods from '@/components/ManagePaymentMethods.jsx';
 import AddPaymentMethodForm from '@/components/AddPaymentMethodForm.jsx';
 import EditCredentialForm from '@/components/EditCredentialForm.jsx';
-import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx'; // <-- Naya popup import karein
+import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx';
 import { Loader2 } from 'lucide-react';
+import AddContactForm from '@/components/AddContactForm.jsx';
+import ManageContactLinks from '@/components/ManageContactLinks.jsx';
+import EditContactForm from '@/components/EditContactForm.jsx';
 
 const AdminDashboardPage = () => {
     const [products, setProducts] = useState([]);
@@ -28,15 +32,21 @@ const AdminDashboardPage = () => {
     const [loadingMethods, setLoadingMethods] = useState(true);
     const managePaymentMethodsRef = useRef(null);
 
-    // --- NAYE STATE EDIT POPUP KE LIYE ---
     const [isPaymentEditOpen, setIsPaymentEditOpen] = useState(false);
     const [editingPaymentMethod, setEditingPaymentMethod] = useState(null);
+
+    const [contactLinks, setContactLinks] = useState([]);
+    const [loadingLinks, setLoadingLinks] = useState(true);
+    const [isContactEditOpen, setIsContactEditOpen] = useState(false);
+    const [editingContactLink, setEditingContactLink] = useState(null);
 
     const manageCredentialsRef = useRef(null);
 
     const fetchProducts = async () => {
         try {
-            const res = await axios.get('/api/products');
+            // Hum yahaan 'api.get' use kar rahe hain, lekin ismein token ki zaroorat nahi hai
+            // Kyunki '/api/products' ek public route hai.
+            const res = await api.get('/api/products');
             setProducts(res.data);
         } catch (err) {
             console.error("Products fetch nahi ho paye", err);
@@ -47,22 +57,44 @@ const AdminDashboardPage = () => {
 
     const fetchPaymentMethods = async () => {
         try {
-            const token = localStorage.getItem('adminToken');
-            const res = await axios.get('/api/payment-methods/admin', {
-                headers: { 'x-auth-token': token }
-            });
+            // --- YEH BLOCK UPDATE HUA ---
+            // Ab hum 'api' instance use kar rahe hain
+            // Interceptor is request mein token khud add kar dega
+            const res = await api.get('/api/payment-methods/admin');
+            // Humne headers waala part hata diya hai
             setPaymentMethods(res.data);
         } catch (err) {
             console.error("Payment methods fetch nahi ho paye", err);
+            // Agar token invalid hai toh login page par bhej dein
+            if (err.response && err.response.status === 401) {
+                navigate('/login');
+            }
         } finally {
             if (loadingMethods) setLoadingMethods(false);
         }
     };
 
+    const fetchContactLinks = async () => {
+        try {
+            setLoadingLinks(true); // Isse hum har update par loading dikha sakte hain
+            const res = await api.get('/api/contact/admin');
+            setContactLinks(res.data);
+        } catch (err) {
+            console.error("Contact links fetch nahi ho paye", err);
+            if (err.response && err.response.status === 401) {
+                navigate('/login');
+            }
+        } finally {
+            setLoadingLinks(false);
+        }
+    };
+
     useEffect(() => {
+        // Dono functions ko call karein
         fetchProducts();
         fetchPaymentMethods();
-    }, []);
+        fetchContactLinks();
+    }, [navigate]); // <-- Empty dependency array, taaki yeh sirf ek baar chale
 
     const handleEditProduct = (product) => {
         setEditingProduct(product);
@@ -74,10 +106,14 @@ const AdminDashboardPage = () => {
         setIsCredEditOpen(true);
     };
 
-    // --- NAYA FUNCTION EDIT POPUP KHOLNE KE LIYE ---
     const handleEditPaymentMethod = (method) => {
         setEditingPaymentMethod(method);
         setIsPaymentEditOpen(true);
+    };
+
+    const handleEditContactLink = (link) => {
+        setEditingContactLink(link);
+        setIsContactEditOpen(true);
     };
 
     const handleLogout = () => {
@@ -92,7 +128,7 @@ const AdminDashboardPage = () => {
         }
     };
 
-    if (loading || loadingMethods) {
+    if (loading || loadingMethods || loadingLinks) {
         return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /> Loading...</div>;
     }
 
@@ -120,14 +156,21 @@ const AdminDashboardPage = () => {
                     <ManageCredentials ref={manageCredentialsRef} products={products} onStockChange={fetchProducts} onEdit={handleEditCredential} />
                 </div>
 
-                {/* Column 3: Payment Method Management */}
+                {/* Column 3: Settings Management (Payment + Contact) */}
                 <div className="space-y-8 lg:col-span-1">
                     <AddPaymentMethodForm onMethodChange={handlePaymentMethodChange} />
                     <ManagePaymentMethods
                         ref={managePaymentMethodsRef}
                         paymentMethods={paymentMethods}
                         onMethodChange={handlePaymentMethodChange}
-                        onEdit={handleEditPaymentMethod} // <-- Edit function ko yahaan pass karein
+                        onEdit={handleEditPaymentMethod}
+                    />
+
+                    <AddContactForm onContactChange={fetchContactLinks} />
+                    <ManageContactLinks
+                        contactLinks={contactLinks}
+                        onContactChange={fetchContactLinks}
+                        onEdit={handleEditContactLink}
                     />
                 </div>
             </div>
@@ -157,13 +200,23 @@ const AdminDashboardPage = () => {
                 />
             )}
 
-            {/* --- NAYA EDIT POPUP RENDER KAREIN --- */}
+            {/* Edit Payment Method Popup */}
             {isPaymentEditOpen && (
                 <EditPaymentMethodForm
                     method={editingPaymentMethod}
                     isOpen={isPaymentEditOpen}
                     onClose={() => setIsPaymentEditOpen(false)}
                     onMethodChange={handlePaymentMethodChange}
+                />
+            )}
+
+            {/* Edit Contact Us Popup */}
+            {isContactEditOpen && (
+                <EditContactForm
+                    link={editingContactLink}
+                    isOpen={isContactEditOpen}
+                    onClose={() => setIsContactEditOpen(false)}
+                    onContactChange={fetchContactLinks}
                 />
             )}
 

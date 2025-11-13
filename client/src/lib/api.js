@@ -1,3 +1,5 @@
+// client/src/lib/api.js
+
 import axios from "axios";
 
 // 1. Naya axios instance banayein
@@ -11,8 +13,12 @@ const api = axios.create({
 // Yeh aapke har admin request ke saath 'x-auth-token' khud bhej dega
 api.interceptors.request.use(
   (config) => {
-    // Sirf admin (API) routes ke liye token add karein
-    if (config.url.startsWith("/api/admin")) {
+    // --- YEH LINE UPDATE HUI HAI ---
+    // Ab hum check karenge ki URL mein '/admin' kahin bhi hai ya nahi
+    // Ya phir URL '/api/auth' (login/register) ke alawa hai
+    const isAdminRoute = config.url.includes("/admin");
+
+    if (isAdminRoute) {
       const token = localStorage.getItem("adminToken");
       if (token) {
         config.headers["x-auth-token"] = token;
