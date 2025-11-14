@@ -22,14 +22,15 @@ const productSchema = new Schema(
       type: String,
       default: "",
     },
-    // --- YEH NAYA BLOCK ADD HUA HAI ---
-    // Yahaan hum define karenge ki is product ke liye
-    // kaun se credential fields zaroori hain
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+    },
     credentialFields: {
       type: [String],
-      default: [], // e.g., ["Email", "Password", "Username"]
+      default: [],
     },
-    // --- NAYA BLOCK KHATAM ---
   },
   {
     timestamps: true,

@@ -7,14 +7,22 @@ import { Input } from '@/components/ui/input.jsx';
 import { Textarea } from '@/components/ui/textarea.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Plus, Trash2 } from 'lucide-react';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select.jsx';
 
 // Prop ka naam yahaan badla gaya hai
-const AddProductForm = ({ onProductChange }) => {
+const AddProductForm = ({ onProductChange, categories }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [fields, setFields] = useState(['']);
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
 
@@ -39,6 +47,12 @@ const AddProductForm = ({ onProductChange }) => {
         setMessage(null);
         setError(null);
         const token = localStorage.getItem('adminToken');
+
+        // Validation
+        if (!selectedCategory) {
+            setError("Please select a category.");
+            return;
+        }
         const validFields = fields.filter(f => f.trim().length > 0);
         if (validFields.length === 0) {
             setError("Please add at least one credential field (e.g., 'Email').");
@@ -52,7 +66,8 @@ const AddProductForm = ({ onProductChange }) => {
                     description,
                     price: Number(price),
                     imageUrl,
-                    credentialFields: validFields
+                    credentialFields: validFields,
+                    categoryId: selectedCategory,
                 },
                 { headers: { 'x-auth-token': token } }
             );
@@ -62,8 +77,7 @@ const AddProductForm = ({ onProductChange }) => {
             setPrice('');
             setImageUrl('');
             setFields(['']);
-
-            // Yahaan function call badla gaya hai
+            setSelectedCategory(null);
             onProductChange();
 
         } catch (err) {
@@ -79,6 +93,29 @@ const AddProductForm = ({ onProductChange }) => {
                     <Label htmlFor="name">Product Name</Label>
                     <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="AWS 8v Japan-Tokyo" required />
                 </div>
+
+                <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Select onValueChange={setSelectedCategory} value={selectedCategory}>
+                        <SelectTrigger id="category">
+                            <SelectValue placeholder="Select a category..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {categories.length > 0 ? (
+                                categories.map((cat) => (
+                                    <SelectItem key={cat._id} value={cat._id}>
+                                        {cat.name}
+                                    </SelectItem>
+                                ))
+                            ) : (
+                                <SelectItem value="none" disabled>
+                                    Please add a category first
+                                </SelectItem>
+                            )}
+                        </SelectContent>
+                    </Select>
+                </div>
+
                 <div>
                     <Label htmlFor="price">Price (USDT)</Label>
                     <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="5.00" required />

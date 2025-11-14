@@ -13,7 +13,8 @@ const { deliverProduct } = require("../utils/delivery");
 
 // ROUTE 1: Add Product...
 router.post("/products", authMiddleware, async (req, res) => {
-  const { name, description, price, imageUrl, credentialFields } = req.body;
+  const { name, description, price, imageUrl, credentialFields, categoryId } =
+    req.body;
   try {
     const newProduct = new Product({
       name,
@@ -21,6 +22,7 @@ router.post("/products", authMiddleware, async (req, res) => {
       price,
       imageUrl,
       credentialFields,
+      category: categoryId,
     });
     const product = await newProduct.save();
     res.status(201).json(product);
@@ -151,7 +153,8 @@ router.delete("/products/:id", authMiddleware, async (req, res) => {
 
 // ROUTE 7: Update Product...
 router.put("/products/:id", authMiddleware, async (req, res) => {
-  const { name, description, price, imageUrl, credentialFields } = req.body;
+  const { name, description, price, imageUrl, credentialFields, categoryId } =
+    req.body;
   try {
     let product = await Product.findById(req.params.id);
     if (!product) {
@@ -164,6 +167,7 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
     product.price = price;
     product.imageUrl = imageUrl;
     product.credentialFields = credentialFields;
+    product.category = categoryId;
 
     await product.save();
     res.json(product);

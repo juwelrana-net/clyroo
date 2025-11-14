@@ -18,6 +18,9 @@ import { Loader2 } from 'lucide-react';
 import AddContactForm from '@/components/AddContactForm.jsx';
 import ManageContactLinks from '@/components/ManageContactLinks.jsx';
 import EditContactForm from '@/components/EditContactForm.jsx';
+import AddCategoryForm from '@/components/AddCategoryForm.jsx';
+import ManageCategories from '@/components/ManageCategories.jsx';
+import EditCategoryForm from '@/components/EditCategoryForm.jsx';
 
 const AdminDashboardPage = () => {
     const [products, setProducts] = useState([]);
@@ -39,6 +42,11 @@ const AdminDashboardPage = () => {
     const [loadingLinks, setLoadingLinks] = useState(true);
     const [isContactEditOpen, setIsContactEditOpen] = useState(false);
     const [editingContactLink, setEditingContactLink] = useState(null);
+
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    const [isCategoryEditOpen, setIsCategoryEditOpen] = useState(false);
+    const [editingCategory, setEditingCategory] = useState(null);
 
     const manageCredentialsRef = useRef(null);
 
@@ -89,12 +97,24 @@ const AdminDashboardPage = () => {
         }
     };
 
+    const fetchCategories = async () => {
+        try {
+            setLoadingCategories(true);
+            const res = await api.get('/api/categories/admin');
+            setCategories(res.data);
+        } catch (err) {
+            console.error("Categories fetch nahi ho paye", err);
+        } finally {
+            setLoadingCategories(false);
+        }
+    };
+
     useEffect(() => {
-        // Dono functions ko call karein
         fetchProducts();
         fetchPaymentMethods();
         fetchContactLinks();
-    }, [navigate]); // <-- Empty dependency array, taaki yeh sirf ek baar chale
+        fetchCategories();
+    }, [navigate]);
 
     const handleEditProduct = (product) => {
         setEditingProduct(product);
@@ -116,6 +136,11 @@ const AdminDashboardPage = () => {
         setIsContactEditOpen(true);
     };
 
+    const handleEditCategory = (category) => {
+        setEditingCategory(category);
+        setIsCategoryEditOpen(true);
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('adminToken');
         navigate('/login');
@@ -128,7 +153,7 @@ const AdminDashboardPage = () => {
         }
     };
 
-    if (loading || loadingMethods || loadingLinks) {
+    if (loading || loadingMethods || loadingLinks || loadingCategories) {
         return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /> Loading...</div>;
     }
 
@@ -172,6 +197,13 @@ const AdminDashboardPage = () => {
                         onContactChange={fetchContactLinks}
                         onEdit={handleEditContactLink}
                     />
+
+                    <AddCategoryForm onCategoryChange={fetchCategories} />
+                    <ManageCategories
+                        categories={categories}
+                        onCategoryChange={fetchCategories}
+                        onEdit={handleEditCategory}
+                    />
                 </div>
             </div>
 
@@ -182,6 +214,7 @@ const AdminDashboardPage = () => {
                     isOpen={isEditOpen}
                     onClose={() => setIsEditOpen(false)}
                     onProductChange={fetchProducts}
+                    categories={categories}
                 />
             )}
 
@@ -217,6 +250,16 @@ const AdminDashboardPage = () => {
                     isOpen={isContactEditOpen}
                     onClose={() => setIsContactEditOpen(false)}
                     onContactChange={fetchContactLinks}
+                />
+            )}
+
+            {/* Edit Category Popup */}
+            {isCategoryEditOpen && (
+                <EditCategoryForm
+                    category={editingCategory}
+                    isOpen={isCategoryEditOpen}
+                    onClose={() => setIsCategoryEditOpen(false)}
+                    onCategoryChange={fetchCategories}
                 />
             )}
 

@@ -15,13 +15,21 @@ import {
     DialogFooter,
     DialogDescription,
 } from "@/components/ui/dialog.jsx"; // Dialog import karein
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select.jsx';
 
-const EditProductForm = ({ product, isOpen, onClose, onProductChange }) => {
+const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');
     const [imageUrl, setImageUrl] = useState('');
     const [fields, setFields] = useState(['']);
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
     const token = localStorage.getItem('adminToken');
@@ -34,6 +42,7 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange }) => {
             setPrice(product.price || '');
             setImageUrl(product.imageUrl || '');
             setFields(product.credentialFields.length > 0 ? product.credentialFields : ['']);
+            setSelectedCategory(product.category?._id || null);
         }
     }, [product]); // Yeh tab run hoga jab 'product' prop update hoga
 
@@ -65,15 +74,21 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange }) => {
             return;
         }
 
+        if (!selectedCategory) {
+            setError("Please select a category.");
+            return;
+        }
+
         try {
             await axios.put(
-                `/api/admin/products/${product._id}`, // Naya PUT route
+                `/api/admin/products/${product._id}`,
                 {
                     name,
                     description,
                     price: Number(price),
                     imageUrl,
-                    credentialFields: validFields
+                    credentialFields: fields.filter(f => f.trim().length > 0),
+                    categoryId: selectedCategory,
                 },
                 { headers: { 'x-auth-token': token } }
             );
@@ -98,6 +113,27 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange }) => {
                     <div>
                         <Label htmlFor="edit-name">Product Name</Label>
                         <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
+                    </div>
+                    <div>
+                        <Label htmlFor="edit-category">Category</Label>
+                        <Select onValueChange={setSelectedCategory} value={selectedCategory}>
+                            <SelectTrigger id="edit-category">
+                                <SelectValue placeholder="Select a category..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {categories.length > 0 ? (
+                                    categories.map((cat) => (
+                                        <SelectItem key={cat._id} value={cat._id}>
+                                            {cat.name}
+                                        </SelectItem>
+                                    ))
+                                ) : (
+                                    <SelectItem value="none" disabled>
+                                        No categories found
+                                    </SelectItem>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </div>
                     <div>
                         <Label htmlFor="edit-price">Price (USDT)</Label>

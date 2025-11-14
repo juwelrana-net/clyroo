@@ -15,7 +15,7 @@ import OrderSuccessPage from './pages/OrderSuccessPage.jsx';
 import OrderInquiryPage from './pages/OrderInquiryPage.jsx';
 
 // --- NAYE IMPORTS ---
-import { Package, UserCog, Menu, X, MessageCircle, Send } from 'lucide-react'; // Naye icons add kiye (Menu, X, MessageCircle, Send) aur Search hataya
+import { Package, UserCog, Menu, X, MessageCircle, Send, Loader2 } from 'lucide-react'; // Naye icons add kiye (Menu, X, MessageCircle, Send) aur Search hataya
 import { ThemeToggle } from './components/ThemeToggle.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import {

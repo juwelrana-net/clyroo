@@ -1,21 +1,52 @@
 // client/src/pages/HomePage.jsx
 
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '@/lib/api.js';
 import ProductCard from '@/components/ProductCard.jsx';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Button } from '@/components/ui/button.jsx';
+// import { cn } from '@/lib/utils.js';
 
 const HomePage = () => {
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [categories, setCategories] = useState([]);
+    const [loadingCategories, setLoadingCategories] = useState(true);
+    // `null` ka matlab "All" hoga
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
+    // Effect 1: Sirf ek baar categories fetch karein
+    useEffect(() => {
+        const fetchCategories = async () => {
+            try {
+                setLoadingCategories(true);
+                const response = await api.get('/api/categories');
+                setCategories(response.data);
+            } catch (err) {
+                console.error("Error fetching categories:", err);
+                // Yahaan error dikhana zaroori nahi
+            } finally {
+                setLoadingCategories(false);
+            }
+        };
+        fetchCategories();
+    }, []);
+
+    // Effect 2: Products fetch karein (jab bhi `selectedCategory` badle)
     useEffect(() => {
         const fetchProducts = async () => {
             try {
                 setLoading(true);
                 setError(null);
-                const response = await axios.get('/api/products');
+
+                // API call mein params bhejein
+                const response = await api.get('/api/products', {
+                    params: {
+                        categoryId: selectedCategory, // Agar `null` hai, toh backend handle kar lega
+                    },
+                });
+
                 setProducts(response.data);
             } catch (err) {
                 console.error("Error fetching products:", err);
@@ -26,7 +57,7 @@ const HomePage = () => {
         };
 
         fetchProducts();
-    }, []);
+    }, [selectedCategory]); // Yeh effect `selectedCategory` par depend karta hai
 
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8">
@@ -53,11 +84,42 @@ const HomePage = () => {
             </div>
             {/* --- ANNOUNCEMENT BOX END --- */}
 
+            <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-4 text-foreground">
+                    Categories
+                </h3>
+                {loadingCategories ? (
+                    <Loader2 className="animate-spin" />
+                ) : (
+                    <div className="flex flex-wrap gap-3">
+                        {/* "All" button */}
+                        <Button
+                            variant={selectedCategory === null ? "default" : "outline"}
+                            onClick={() => setSelectedCategory(null)}
+                            className="rounded-full"
+                        >
+                            All
+                        </Button>
+                        {/* Dynamic category buttons */}
+                        {categories.map((cat) => (
+                            <Button
+                                key={cat._id}
+                                variant={selectedCategory === cat._id ? "default" : "outline"}
+                                onClick={() => setSelectedCategory(cat._id)}
+                                className="rounded-full"
+                            >
+                                {cat.name}
+                            </Button>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             {/* Product Grid */}
             <div>
                 <h3 className="text-3xl font-bold mb-6 text-foreground">
-                    What's a little needed today?
+                    {loadingCategories ? "Products" :
+                        categories.find(c => c._id === selectedCategory)?.name || "All Products"}
                 </h3>
 
                 {loading && <p className="text-muted-foreground">Loading products...</p>}
@@ -71,7 +133,7 @@ const HomePage = () => {
 
                 {!loading && !error && products.length === 0 && (
                     <div className="text-muted-foreground bg-secondary/50 p-6 rounded-lg border border-border">
-                        No products found. Please add products from the admin panel.
+                        No products found {selectedCategory ? "in this category" : ""}.
                     </div>
                 )}
 
