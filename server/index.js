@@ -7,7 +7,8 @@ require("dotenv").config();
 
 // Firebase Admin SDK
 const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
+// Render secret files ko hamesha /etc/secrets/ folder mein rakhta hai
+const serviceAccount = require("/etc/secrets/serviceAccountKey.json");
 
 // Routes ko import karein
 const productRoutes = require("./routes/productRoutes");
