@@ -5,6 +5,10 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
+// Firebase Admin SDK
+const admin = require("firebase-admin");
+const serviceAccount = require("./serviceAccountKey.json");
+
 // Routes ko import karein
 const productRoutes = require("./routes/productRoutes");
 const authRoutes = require("./routes/authRoutes");
@@ -14,6 +18,8 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const cryptoPaymentRoutes = require("./routes/cryptoPaymentRoutes");
 const contactRoutes = require("./routes/contactRoutes");
 const categoryRoutes = require("./routes/categoryRoutes");
+const adminDeviceRoutes = require("./routes/adminDeviceRoutes");
+const siteSettingsRoutes = require("./routes/siteSettingsRoutes");
 
 const app = express();
 
@@ -39,6 +45,8 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/payment-methods", cryptoPaymentRoutes);
 app.use("/api/contact", contactRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/admin", adminDeviceRoutes);
+app.use("/api/settings", siteSettingsRoutes);
 
 // Database Connection
 mongoose

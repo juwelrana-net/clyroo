@@ -77,7 +77,7 @@ const HomePage = () => {
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8">
             {/* --- ANNOUNCEMENT BOX UPDATE KIYA GAYA --- */}
-            <div className="bg-secondary/30 border border-border rounded-lg p-6 mb-10">
+            <div className="bg-secondary/30 border border-border rounded-lg p-6 mb-10 hidden">
                 <h2 className="text-2xl font-bold text-primary mb-3">Announcement</h2>
                 <div className="space-y-2 text-muted-foreground">
                     <p className="text-lg font-semibold">Purchase Instructions:</p>

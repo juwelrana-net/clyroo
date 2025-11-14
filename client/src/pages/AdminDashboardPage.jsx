@@ -21,6 +21,7 @@ import EditContactForm from '@/components/EditContactForm.jsx';
 import AddCategoryForm from '@/components/AddCategoryForm.jsx';
 import ManageCategories from '@/components/ManageCategories.jsx';
 import EditCategoryForm from '@/components/EditCategoryForm.jsx';
+import NotificationSettingsForm from '@/components/NotificationSettingsForm.jsx';
 
 const AdminDashboardPage = () => {
     const [products, setProducts] = useState([]);
@@ -185,8 +186,9 @@ const AdminDashboardPage = () => {
                     <ManageCredentials ref={manageCredentialsRef} products={products} onStockChange={fetchProducts} onEdit={handleEditCredential} />
                 </div>
 
-                {/* Column 3: Settings Management (Payment + Contact) */}
+                {/* Column 3: Settings Management (Payment + Contact + Notification + Category) */}
                 <div className="space-y-8 lg:col-span-1">
+                    {/* Payment Setting */}
                     <AddPaymentMethodForm onMethodChange={handlePaymentMethodChange} />
                     <ManagePaymentMethods
                         ref={managePaymentMethodsRef}
@@ -195,6 +197,10 @@ const AdminDashboardPage = () => {
                         onEdit={handleEditPaymentMethod}
                     />
 
+                    {/* Notification Settings */}
+                    <NotificationSettingsForm />
+
+                    {/* Contact Settings */}
                     <AddContactForm onContactChange={fetchContactLinks} />
                     <ManageContactLinks
                         contactLinks={contactLinks}
@@ -202,6 +208,7 @@ const AdminDashboardPage = () => {
                         onEdit={handleEditContactLink}
                     />
 
+                    {/* Category Settings */}
                     <AddCategoryForm onCategoryChange={fetchCategories} />
                     <ManageCategories
                         categories={categories}

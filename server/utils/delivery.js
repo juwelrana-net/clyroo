@@ -4,6 +4,7 @@ const mongoose = require("mongoose");
 const Credential = require("../models/Credential");
 const Order = require("../models/Order");
 const sendEmail = require("./sendEmail");
+const { sendAdminNotifications } = require("./notificationSender");
 
 // Function ko poori tarah se update kar diya gaya hai
 const deliverProduct = async (order) => {
@@ -77,6 +78,11 @@ const deliverProduct = async (order) => {
     // --- EMAIL BODY KHATAM ---
 
     sendEmail(order.customerEmail, emailSubject, emailHtml);
+
+    // --- AAKHRI STEP: ADMIN KO NOTIFICATION BHEJEIN ---
+    // Ab hum naya function call karenge
+    // Yeh function khud settings check kar lega
+    sendAdminNotifications(order);
 
     // Ab kuchh return karne ki zaroorat nahi hai
     return;

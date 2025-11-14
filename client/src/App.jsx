@@ -13,9 +13,11 @@ import PaymentSelectPage from './pages/PaymentSelectPage.jsx';
 import NowPaymentsPage from './pages/NowPaymentsPage.jsx';
 import OrderSuccessPage from './pages/OrderSuccessPage.jsx';
 import OrderInquiryPage from './pages/OrderInquiryPage.jsx';
+import TermsPage from './pages/TermsPage.jsx';
+import RefundPolicyPage from './pages/RefundPolicyPage.jsx';
+import HowToBuyPage from './pages/HowToBuyPage.jsx';
 
-// --- NAYE IMPORTS ---
-import { Package, UserCog, Menu, X, MessageCircle, Send, Loader2 } from 'lucide-react'; // Naye icons add kiye (Menu, X, MessageCircle, Send) aur Search hataya
+import { Package, UserCog, Menu, X, MessageCircle, Send, Loader2 } from 'lucide-react';
 import { ThemeToggle } from './components/ThemeToggle.jsx';
 import { Button } from '@/components/ui/button.jsx';
 import {
@@ -25,24 +27,10 @@ import {
   DialogTitle,
   DialogDescription,
   DialogTrigger,
-} from "@/components/ui/dialog.jsx"; // Contact Us popup ke liye
-import { cn } from './lib/utils.js'; // Mobile menu animation ke liye
+} from "@/components/ui/dialog.jsx";
+import { cn } from './lib/utils.js';
 import api from './lib/api.js';
-
-// --- NAYA PLACEHOLDER PAGE ---
-// Hum "How to Buy" page ko baad mein design karenge
-const HowToBuyPage = () => {
-  return (
-    <div className="container mx-auto max-w-7xl px-4 py-8">
-      <h1 className="text-3xl font-bold">How to Buy</h1>
-      <p className="text-muted-foreground mt-4">
-        Yeh page abhi ban raha hai. Yahaan par aap instructions daal sakte hain ki customer purchase kaise kare.
-      </p>
-    </div>
-  );
-};
-// --- PLACEHOLDER PAGE KHATAM ---
-
+import Footer from './components/Footer.jsx';
 
 function App() {
   // Mobile menu (bottom sheet) aur Contact popup ko manage karne ke liye
@@ -127,7 +115,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
 
       {/* --- "CONTACT US" POPUP UPDATE KIYA GAYA --- */}
       <Dialog open={isContactOpen} onOpenChange={setIsContactOpen}>
@@ -197,8 +185,13 @@ function App() {
             <ThemeToggle />
           </div>
 
-          {/* --- NAYA MOBILE HAMBURGER ICON --- */}
-          <div className="md:hidden">
+          {/* --- NAYA MOBILE ICONS (THEME + HAMBURGER) --- */}
+          {/* --- YEH BLOCK UPDATE HUA HAI --- */}
+          <div className="md:hidden flex items-center gap-2">
+            {/* Theme Toggle Button (Mobile) */}
+            <ThemeToggle />
+
+            {/* Hamburger Button (Mobile) */}
             <Button variant="outline" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
               <Menu className="h-[1.2rem] w-[1.2rem]" />
               <span className="sr-only">Open menu</span>
@@ -254,14 +247,16 @@ function App() {
       {/* --- MOBILE MENU KHATAM --- */}
 
 
-      <main>
+      <main className="flex-grow">
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/product/:id" element={<ProductDetailPage />} />
           <Route path="/order/success/:id" element={<OrderSuccessPage />} />
           <Route path="/inquiry" element={<OrderInquiryPage />} />
-          <Route path="/how-to-buy" element={<HowToBuyPage />} /> {/* <-- Naya route add kiya */}
+          <Route path="/how-to-buy" element={<HowToBuyPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/refund-policy" element={<RefundPolicyPage />} />
 
           {/* Payment Routes */}
           <Route path="/order/:id/pay" element={<PaymentSelectPage />} />
@@ -279,6 +274,11 @@ function App() {
 
         </Routes>
       </main>
+
+      {/* Footer ko container mein wrap kiya taaki woh max-width follow kare */}
+      <div className="container mx-auto max-w-7xl px-4">
+        <Footer />
+      </div>
 
     </div>
   );

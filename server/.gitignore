@@ -1,2 +1,10 @@
+# .gitignore file
+
+# Node
+node_modules/
+
+# Env
 .env
-node_modules
+
+# Firebase Admin Key
+serviceAccountKey.json
