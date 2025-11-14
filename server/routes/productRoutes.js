@@ -8,25 +8,38 @@ const Product = require("../models/Product");
 const Credential = require("../models/Credential");
 
 // ROUTE 1: Get All Products (Homepage ke liye)
-// --- YEH ROUTE POORA UPDATE HUA HAI ---
+// --- YEH ROUTE PHIR SE UPDATE HUA HAI (SEARCH KE LIYE) ---
 router.get("/", async (req, res) => {
   try {
-    // Filter logic
-    const { categoryId } = req.query;
+    // --- STEP 1: Dono filters ko query se padhein ---
+    const { categoryId, search } = req.query;
     const matchStage = {}; // MongoDB match filter
 
+    // --- STEP 2: Category filter logic (jaisa pehle tha) ---
     if (categoryId && mongoose.Types.ObjectId.isValid(categoryId)) {
       matchStage.category = new mongoose.Types.ObjectId(categoryId);
     }
 
-    // Hum Aggregation use karenge taaki stock count (N+1 query) ko fix kar sakein
+    // --- STEP 3: NAYA SEARCH FILTER LOGIC ---
+    // Agar 'search' query hai aur khaali nahi hai
+    if (search && search.trim() !== "") {
+      // '$regex' ka matlab hai "text contains" (partial match)
+      // '$options: "i"' ka matlab hai case-insensitive (e.g., "aws" aur "AWS" dono match honge)
+      matchStage.name = { $regex: search.trim(), $options: "i" };
+    }
+    // --- NAYA LOGIC KHATAM ---
+
+    // Ab `matchStage` mein category aur name, dono filters ho sakte hain
+
+    // Hum Aggregation use karenge (jaisa pehle kiya tha)
     const productsWithStock = await Product.aggregate([
-      // Stage 1: Sirf category match waale product dhoondein (agar filter hai)
+      // Stage 1: Product ko 'matchStage' ke hisaab se filter karein
       { $match: matchStage },
+
       // Stage 2: Category ka data populate (join) karein
       {
         $lookup: {
-          from: "categories", // 'categories' collection
+          from: "categories",
           localField: "category",
           foreignField: "_id",
           as: "categoryDetails",
@@ -35,28 +48,23 @@ router.get("/", async (req, res) => {
       // Stage 3: Unsold credentials (stock) ko join karein
       {
         $lookup: {
-          from: "credentials", // 'credentials' collection
+          from: "credentials",
           localField: "_id",
           foreignField: "product",
           as: "stockItems",
-          pipeline: [
-            { $match: { isSold: false } }, // Sirf unsold waale
-          ],
+          pipeline: [{ $match: { isSold: false } }],
         },
       },
       // Stage 4: Data ko saaf-suthra banayein
       {
         $project: {
-          // Product ke saare fields
           name: 1,
           description: 1,
           price: 1,
           imageUrl: 1,
           credentialFields: 1,
           createdAt: 1,
-          // Category ko array se object banayein
           category: { $arrayElemAt: ["$categoryDetails", 0] },
-          // Stock count ko calculate karein
           stock: { $size: "$stockItems" },
         },
       },

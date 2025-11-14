@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select.jsx';
 
 // Prop ka naam yahaan badla gaya hai
-const AddProductForm = ({ onProductChange, categories }) => {
+const AddProductForm = ({ onProductChange, categories = [] }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');

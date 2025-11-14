@@ -23,7 +23,7 @@ import {
     SelectValue,
 } from '@/components/ui/select.jsx';
 
-const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories }) => {
+const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories = [] }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [price, setPrice] = useState('');

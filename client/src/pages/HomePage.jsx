@@ -3,9 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/api.js';
 import ProductCard from '@/components/ProductCard.jsx';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
 // import { cn } from '@/lib/utils.js';
+// import { Input } from '@/components/ui/input.jsx';
 
 const HomePage = () => {
     const [products, setProducts] = useState([]);
@@ -15,6 +17,7 @@ const HomePage = () => {
     const [loadingCategories, setLoadingCategories] = useState(true);
     // `null` ka matlab "All" hoga
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [searchTerm, setSearchTerm] = useState("");
 
     // Effect 1: Sirf ek baar categories fetch karein
     useEffect(() => {
@@ -44,6 +47,7 @@ const HomePage = () => {
                 const response = await api.get('/api/products', {
                     params: {
                         categoryId: selectedCategory, // Agar `null` hai, toh backend handle kar lega
+                        search: searchTerm,
                     },
                 });
 
@@ -56,8 +60,19 @@ const HomePage = () => {
             }
         };
 
-        fetchProducts();
-    }, [selectedCategory]); // Yeh effect `selectedCategory` par depend karta hai
+        // --- DEBOUNCING (Future-proof) ---
+        // Hum search ke liye 'debounce' add karenge taaki har key press par API call na ho.
+        // Yeh user ke type karna band karne ke 500ms baad hi search karega.
+        const timerId = setTimeout(() => {
+            fetchProducts();
+        }, 500); // 500ms delay
+
+        // Cleanup function taaki puraane timers clear ho jaayein
+        return () => {
+            clearTimeout(timerId);
+        };
+
+    }, [selectedCategory, searchTerm]); // Yeh effect `selectedCategory` par depend karta hai
 
     return (
         <div className="container mx-auto max-w-7xl px-4 py-8">
@@ -83,6 +98,18 @@ const HomePage = () => {
                 </div>
             </div>
             {/* --- ANNOUNCEMENT BOX END --- */}
+
+            <div className="mb-8 relative">
+                {/* Search icon ko input field ke andar rakha hai */}
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    type="text"
+                    placeholder="Search products by name..."
+                    className="pl-10 h-12 text-base" // Left padding di taaki text icon ke upar na aaye
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)} // State update karein
+                />
+            </div>
 
             <div className="mb-8">
                 <h3 className="text-2xl font-bold mb-4 text-foreground">

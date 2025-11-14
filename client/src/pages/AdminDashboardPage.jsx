@@ -167,7 +167,11 @@ const AdminDashboardPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {/* Column 1: Product Management */}
                 <div className="space-y-8 lg:col-span-1">
-                    <AddProductForm onProductChange={fetchProducts} />
+                    {/* Categories ko product form mein pass karein */}
+                    <AddProductForm
+                        onProductChange={fetchProducts}
+                        categories={categories}  // <-- YEH LINE ADD YA CONFIRM KAREIN
+                    />
                     <ManageProducts
                         products={products}
                         onProductChange={fetchProducts}
