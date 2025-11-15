@@ -15,9 +15,14 @@ import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx';
 import EditContactForm from '@/components/EditContactForm.jsx';
 import EditCategoryForm from '@/components/EditCategoryForm.jsx';
 
+import EditProfileForm from '@/components/admin/EditProfileForm.jsx';
+import DeleteAccountDialog from '@/components/admin/DeleteAccountDialog.jsx';
+
 const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [adminUser, setAdminUser] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(true);
 
     // Data States
     const [products, setProducts] = useState([]);
@@ -54,6 +59,22 @@ const AdminLayout = () => {
     const [editingContactLink, setEditingContactLink] = useState(null);
     const [isCategoryEditOpen, setIsCategoryEditOpen] = useState(false);
     const [editingCategory, setEditingCategory] = useState(null);
+    const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
+    const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
+
+    // User Data Fetch (Header se move kiya gaya)
+    const fetchUser = async () => {
+        try {
+            // Hum loading ko true set nahi kar rahe taaki page refresh na dikhe
+            const res = await api.get('/api/profile/me');
+            setAdminUser(res.data);
+        } catch (err) {
+            console.error("Failed to fetch admin user", err);
+            handleAuthError(err); // Auth error handle karein
+        } finally {
+            if (loadingUser) setLoadingUser(false); // Sirf pehli baar loading state ko false karein
+        }
+    };
 
     // --- Data Fetching Functions ---
     const fetchDashboardStats = async (range) => {
@@ -142,6 +163,7 @@ const AdminLayout = () => {
     };
 
     useEffect(() => {
+        fetchUser();
         fetchProducts();
         fetchCategories();
         fetchPaymentMethods();
@@ -201,8 +223,21 @@ const AdminLayout = () => {
         setIsContactEditOpen(true);
     };
 
+    const handleEditProfile = () => {
+        setIsEditProfileOpen(true);
+    };
+
+    const handleDeleteAccount = () => {
+        setIsDeleteAccountOpen(true);
+    };
+
+    const handleProfileUpdate = () => {
+        fetchUser(); // fetchUser ko call karein
+    };
+
     // --- Loading State ---
-    const isLoading = loadingProducts || loadingCategories || loadingMethods || loadingLinks || loadingStats || loadingCharts;
+    const isLoading = loadingUser || loadingProducts || loadingCategories || loadingMethods || loadingLinks || loadingStats || loadingCharts;
+
     if (isLoading) {
         return (
             <div className="flex min-h-screen bg-secondary/30 items-center justify-center">
@@ -233,7 +268,8 @@ const AdminLayout = () => {
         handlePaymentMethodChange,
         handleEditPaymentMethod,
         handleContactChange,
-        handleEditContactLink
+        handleEditContactLink,
+        adminUser: adminUser
     };
 
     // --- YAHAN SE JSX UPDATE HUA HAI ---
@@ -251,7 +287,12 @@ const AdminLayout = () => {
                 <div className="flex-1 flex flex-col gap-6 w-full">
 
                     {/* Header (Navbar) */}
-                    <AdminHeader />
+                    <AdminHeader
+                        adminUser={adminUser}
+                        loadingUser={loadingUser}
+                        onEditProfile={handleEditProfile}
+                        onDeleteAccount={handleDeleteAccount}
+                    />
 
                     {/* Main Panel (Content) */}
                     <main className="flex-1 bg-background rounded-xl border border-border shadow-lg p-4 md:p-8">
@@ -302,6 +343,22 @@ const AdminLayout = () => {
                     isOpen={isCategoryEditOpen}
                     onClose={() => setIsCategoryEditOpen(false)}
                     onCategoryChange={handleCategoryChange}
+                />
+            )}
+
+            {isEditProfileOpen && (
+                <EditProfileForm
+                    isOpen={isEditProfileOpen}
+                    onClose={() => setIsEditProfileOpen(false)}
+                    onProfileUpdate={handleProfileUpdate}
+                    currentUser={adminUser}
+                />
+            )}
+
+            {isDeleteAccountOpen && (
+                <DeleteAccountDialog
+                    isOpen={isDeleteAccountOpen}
+                    onClose={() => setIsDeleteAccountOpen(false)}
                 />
             )}
         </div>
