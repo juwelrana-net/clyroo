@@ -86,7 +86,7 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
     };
 
     return (
-        <div className="bg-secondary/30 border border-border rounded-lg p-6">
+        <div className="bg-secondary/30 border border-border rounded-lg p-6 h-full">
             <h2 className="text-2xl font-bold mb-4 text-primary">Add New Product</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>

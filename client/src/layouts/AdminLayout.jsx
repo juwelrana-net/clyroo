@@ -17,9 +17,7 @@ import EditCategoryForm from '@/components/EditCategoryForm.jsx';
 
 const AdminLayout = () => {
     const navigate = useNavigate();
-    const location = useLocation(); // Current URL check karne ke liye
-
-    // --- Saari State aur Data Fetching Logic yahaan move kar di gayi hai ---
+    const location = useLocation();
 
     // Data States
     const [products, setProducts] = useState([]);
@@ -27,9 +25,13 @@ const AdminLayout = () => {
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [contactLinks, setContactLinks] = useState([]);
 
+    // Stats State
     const [dashboardStats, setDashboardStats] = useState(null);
-    const [statRange, setStatRange] = useState('30days'); // Default range
+    const [statRange, setStatRange] = useState('30days');
     const [loadingStats, setLoadingStats] = useState(true);
+
+    const [chartData, setChartData] = useState([]);
+    const [loadingCharts, setLoadingCharts] = useState(true);
 
     // Loading States
     const [loadingProducts, setLoadingProducts] = useState(true);
@@ -54,8 +56,6 @@ const AdminLayout = () => {
     const [editingCategory, setEditingCategory] = useState(null);
 
     // --- Data Fetching Functions ---
-    // (Yeh sab purani AdminDashboardPage.jsx se copy kiye gaye hain)
-
     const fetchDashboardStats = async (range) => {
         try {
             setLoadingStats(true);
@@ -63,9 +63,23 @@ const AdminLayout = () => {
             setDashboardStats(res.data);
         } catch (err) {
             console.error("Dashboard stats fetch nahi ho paye", err);
-            handleAuthError(err); // Auth error check karein
+            handleAuthError(err);
         } finally {
             setLoadingStats(false);
+        }
+    };
+
+    const fetchChartData = async (range) => {
+        try {
+            setLoadingCharts(true);
+            const res = await api.get(`/api/admin/stats/charts?range=${range}`);
+            setChartData(res.data);
+        } catch (err) {
+            console.error("Chart data fetch nahi ho paya", err);
+            // Auth error check karein (optional but good)
+            handleAuthError(err);
+        } finally {
+            setLoadingCharts(false);
         }
     };
 
@@ -120,7 +134,6 @@ const AdminLayout = () => {
         }
     };
 
-    // Auth Error Helper
     const handleAuthError = (err) => {
         if (err.response && err.response.status === 401) {
             localStorage.removeItem('adminToken');
@@ -128,61 +141,50 @@ const AdminLayout = () => {
         }
     };
 
-    // Pehli baar load hone par saara data fetch karein
     useEffect(() => {
         fetchProducts();
         fetchCategories();
         fetchPaymentMethods();
         fetchContactLinks();
         fetchDashboardStats(statRange);
-    }, [navigate]); // navigate ko dependency mein rakhein
+        fetchChartData(statRange);
+    }, [navigate]);
 
-    // Jab statRange (dropdown) badle, toh stats ko dobara fetch karein
     useEffect(() => {
         fetchDashboardStats(statRange);
+        fetchChartData(statRange);
     }, [statRange]);
 
-    // Taaki jab hum /admin/dashboard par wapas aayein, toh data refresh ho
     useEffect(() => {
         if (location.pathname === '/admin/dashboard' || location.pathname === '/admin') {
-            // Stats aur Products/Stock ko refresh karein
             fetchDashboardStats(statRange);
+            fetchChartData(statRange);
             fetchProducts();
         }
-    }, [location.pathname, statRange]); // location aur range par depend karega
+    }, [location.pathname, statRange]);
 
-    // --- Handlers (Yeh bhi AdminDashboardPage.jsx se hain) ---
-
-    // Product Handlers
+    // --- Handlers ---
     const handleProductChange = () => fetchProducts();
     const handleEditProduct = (product) => {
         setEditingProduct(product);
         setIsEditOpen(true);
     };
-
-    // Stock/Credential Handlers
-    const handleStockChange = () => {
-        fetchProducts(); // Stock badlega toh product list refresh karni hogi
-    };
+    const handleStockChange = () => fetchProducts();
     const handleEditCredential = (credential) => {
         setEditingCredential(credential);
         setIsCredEditOpen(true);
     };
     const handleCredentialChange = () => {
-        handleStockChange(); // Product list refresh
+        handleStockChange();
         if (manageCredentialsRef.current) {
-            manageCredentialsRef.current.refreshList(); // Credential list refresh
+            manageCredentialsRef.current.refreshList();
         }
     };
-
-    // Category Handlers
     const handleCategoryChange = () => fetchCategories();
     const handleEditCategory = (category) => {
         setEditingCategory(category);
         setIsCategoryEditOpen(true);
     };
-
-    // Payment Handlers
     const handlePaymentMethodChange = () => {
         fetchPaymentMethods();
         if (managePaymentMethodsRef.current) {
@@ -193,8 +195,6 @@ const AdminLayout = () => {
         setEditingPaymentMethod(method);
         setIsPaymentEditOpen(true);
     };
-
-    // Contact Handlers
     const handleContactChange = () => fetchContactLinks();
     const handleEditContactLink = (link) => {
         setEditingContactLink(link);
@@ -202,8 +202,7 @@ const AdminLayout = () => {
     };
 
     // --- Loading State ---
-    const isLoading = loadingProducts || loadingCategories || loadingMethods || loadingLinks || (loadingStats && !dashboardStats);
-
+    const isLoading = loadingProducts || loadingCategories || loadingMethods || loadingLinks || loadingStats || loadingCharts;
     if (isLoading) {
         return (
             <div className="flex min-h-screen bg-secondary/30 items-center justify-center">
@@ -212,7 +211,6 @@ const AdminLayout = () => {
         );
     }
 
-    // Saare data aur functions ko ek object mein bundle karein
     const outletContext = {
         products,
         categories,
@@ -220,6 +218,9 @@ const AdminLayout = () => {
         contactLinks,
         dashboardStats,
         setStatRange,
+        statRange,
+        chartData,
+        loadingCharts,
         manageCredentialsRef,
         managePaymentMethodsRef,
         handleProductChange,
@@ -235,25 +236,32 @@ const AdminLayout = () => {
         handleEditContactLink
     };
 
+    // --- YAHAN SE JSX UPDATE HUA HAI ---
     return (
-        <div className="flex min-h-screen bg-secondary/30">
-            {/* 1. Sidebar */}
-            <AdminSidebar />
+        // 1. Pura background `bg-secondary/30` hoga aur padding `p-4` ya `p-8` hogi
+        <div className="h-screen bg-secondary/30 p-4 md:p-8">
 
-            {/* 2. Main Content Area */}
-            <div className="flex-1 flex flex-col">
-                <AdminHeader />
+            {/* 2. Ek container banayein jo max-width-7xl (1280px) hoga */}
+            <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 w-full h-full">
 
-                {/* 3. Page Content */}
-                <main className="flex-1 p-4 md:p-8">
-                    {/* Saara data aur functions Outlet ke zariye child pages ko pass karein */}
-                    <Outlet context={outletContext} />
-                </main>
+                {/* 3. Sidebar (yeh abhi bhi w-64 hai) */}
+                <AdminSidebar />
+
+                {/* 4. Main Content Area (Header + Content) */}
+                <div className="flex-1 flex flex-col gap-6 w-full">
+
+                    {/* Header (Navbar) */}
+                    <AdminHeader />
+
+                    {/* Main Panel (Content) */}
+                    <main className="flex-1 bg-background rounded-xl border border-border shadow-lg p-4 md:p-8">
+                        {/* Saara data aur functions Outlet ke zariye child pages ko pass karein */}
+                        <Outlet context={outletContext} />
+                    </main>
+                </div>
             </div>
 
-            {/* --- Saare Popups ab Layout Level par hain --- */}
-
-            {/* Edit Product Popup */}
+            {/* --- Saare Popups waise hi rahenge --- */}
             {isEditOpen && (
                 <EditProductForm
                     product={editingProduct}
@@ -263,8 +271,7 @@ const AdminLayout = () => {
                     categories={categories}
                 />
             )}
-
-            {/* Edit Credential Popup */}
+            {/* ... (baaki saare popups) ... */}
             {isCredEditOpen && (
                 <EditCredentialForm
                     credential={editingCredential}
@@ -273,8 +280,6 @@ const AdminLayout = () => {
                     onCredentialChange={handleCredentialChange}
                 />
             )}
-
-            {/* Edit Payment Method Popup */}
             {isPaymentEditOpen && (
                 <EditPaymentMethodForm
                     method={editingPaymentMethod}
@@ -283,8 +288,6 @@ const AdminLayout = () => {
                     onMethodChange={handlePaymentMethodChange}
                 />
             )}
-
-            {/* Edit Contact Us Popup */}
             {isContactEditOpen && (
                 <EditContactForm
                     link={editingContactLink}
@@ -293,8 +296,6 @@ const AdminLayout = () => {
                     onContactChange={handleContactChange}
                 />
             )}
-
-            {/* Edit Category Popup */}
             {isCategoryEditOpen && (
                 <EditCategoryForm
                     category={editingCategory}

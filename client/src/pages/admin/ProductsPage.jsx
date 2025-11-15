@@ -17,24 +17,21 @@ const ProductsPage = () => {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Manage Products</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 {/* Column 1: Add Product */}
-                <div className="lg:col-span-1">
-                    <AddProductForm
-                        onProductChange={handleProductChange}
-                        categories={categories}
-                    />
-                </div>
+                <AddProductForm
+                    onProductChange={handleProductChange}
+                    categories={categories}
+                />
 
                 {/* Column 2: Manage Products */}
-                <div className="lg:col-span-2">
-                    <ManageProducts
-                        products={products}
-                        onProductChange={handleProductChange}
-                        onEdit={handleEditProduct}
-                    />
-                </div>
+                <ManageProducts
+                    products={products}
+                    onProductChange={handleProductChange}
+                    onEdit={handleEditProduct}
+                />
             </div>
         </div>
     );

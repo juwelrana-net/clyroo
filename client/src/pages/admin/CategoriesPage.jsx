@@ -16,23 +16,19 @@ const CategoriesPage = () => {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Manage Categories</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 {/* Column 1: Add Category */}
-                <div className="lg:col-span-1">
-                    <AddCategoryForm
-                        onCategoryChange={handleCategoryChange}
-                    />
-                </div>
+                <AddCategoryForm
+                    onCategoryChange={handleCategoryChange}
+                />
 
                 {/* Column 2: Manage Categories */}
-                <div className="lg:col-span-2">
-                    <ManageCategories
-                        categories={categories}
-                        onCategoryChange={handleCategoryChange}
-                        onEdit={handleEditCategory}
-                    />
-                </div>
+                <ManageCategories
+                    categories={categories}
+                    onCategoryChange={handleCategoryChange}
+                    onEdit={handleEditCategory}
+                />
             </div>
         </div>
     );

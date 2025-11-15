@@ -58,7 +58,7 @@ const ManagePaymentMethods = forwardRef(({ paymentMethods, onMethodChange, onEdi
     };
 
     return (
-        <div className="bg-secondary/30 border border-border rounded-lg p-6">
+        <div className="bg-secondary/30 border border-border rounded-lg p-6 h-full">
             <h2 className="text-2xl font-bold mb-4 text-primary">Manage Payment Methods</h2>
             {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 

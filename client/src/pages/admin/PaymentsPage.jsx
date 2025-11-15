@@ -17,24 +17,20 @@ const PaymentsPage = () => {
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Manage Payment Methods</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
                 {/* Column 1: Add Method */}
-                <div className="lg:col-span-1">
-                    <AddPaymentMethodForm
-                        onMethodChange={handlePaymentMethodChange}
-                    />
-                </div>
+                <AddPaymentMethodForm
+                    onMethodChange={handlePaymentMethodChange}
+                />
 
                 {/* Column 2: Manage Methods */}
-                <div className="lg:col-span-2">
-                    <ManagePaymentMethods
-                        ref={managePaymentMethodsRef} // Ref ko yahaan pass karein
-                        paymentMethods={paymentMethods}
-                        onMethodChange={handlePaymentMethodChange}
-                        onEdit={handleEditPaymentMethod}
-                    />
-                </div>
+                <ManagePaymentMethods
+                    ref={managePaymentMethodsRef} // Ref ko yahaan pass karein
+                    paymentMethods={paymentMethods}
+                    onMethodChange={handlePaymentMethodChange}
+                    onEdit={handleEditPaymentMethod}
+                />
             </div>
         </div>
     );

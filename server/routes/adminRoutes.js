@@ -276,4 +276,21 @@ router.get("/stats", authMiddleware, async (req, res) => {
   }
 });
 
+// ROUTE 10: Get Admin Dashboard Chart Data
+// GET /api/admin/stats/charts?range=30days
+router.get("/stats/charts", authMiddleware, async (req, res) => {
+  try {
+    const { range } = req.query; // '7days', '30days', 'alltime', 'yesterday'
+    
+    // Helper function ko call karein
+    const chartData = await getChartData(range);
+    
+    res.json(chartData);
+
+  } catch (err) {
+    console.error("Chart stats fetch error:", err.message);
+    res.status(500).send("Server Error");
+  }
+});
+
 module.exports = router;

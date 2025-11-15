@@ -12,7 +12,6 @@ import {
     Headset,
     BellRing,
     LogOut,
-    Package2 // Logo ke liye
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import {
@@ -55,10 +54,10 @@ const AdminSidebarContent = () => {
             {/* Nav links ka poora structure */}
             <nav className="flex h-full flex-col p-4">
                 {/* Logo */}
-                <div className="flex items-center gap-2 px-4 pb-4 border-b border-border">
+                {/* <div className="flex items-center gap-2 px-4 pb-4 border-b border-border">
                     <Package2 size={28} className="text-primary" />
                     <span className="text-2xl font-bold text-primary">clyroo</span>
-                </div>
+                </div> */}
 
                 {/* Nav Links */}
                 <div className="flex-1 mt-4 space-y-2">

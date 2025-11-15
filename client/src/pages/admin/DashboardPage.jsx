@@ -3,6 +3,10 @@
 import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
+import { Loader2 } from 'lucide-react';
+
+import RevenueChart from '@/components/admin/RevenueChart.jsx';
+import SalesChart from '@/components/admin/SalesChart.jsx';
 
 // Ek naya component Stats Card ke liye (optional, par clean rehta hai)
 const StatCard = ({ title, value, subtext }) => (
@@ -16,7 +20,13 @@ const StatCard = ({ title, value, subtext }) => (
 
 const DashboardPage = () => {
     // AdminLayout se REAL data aur function receive karein
-    const { dashboardStats, setStatRange } = useOutletContext();
+    const {
+        dashboardStats,
+        setStatRange,
+        statRange,
+        chartData,
+        loadingCharts
+    } = useOutletContext();
 
     // Greeting (waise hi rahega)
     const getGreeting = () => {
@@ -40,7 +50,7 @@ const DashboardPage = () => {
                 </div>
                 {/* Ab yeh Select component kaam karega */}
                 <Select
-                    defaultValue="30days"
+                    defaultValue={statRange}
                     onValueChange={(value) => setStatRange(value)} // State ko update karega
                 >
                     <SelectTrigger className="w-full md:w-[180px]">
@@ -84,8 +94,21 @@ const DashboardPage = () => {
             </div>
 
             {/* Future Charts Area (waise hi rahega) */}
-            <div className="mt-8 bg-background p-6 rounded-lg border border-border h-64 flex items-center justify-center">
-                <p className="text-muted-foreground">(Future Charts/Graphs yahaan add honge)</p>
+            <div className="mt-8">
+                {loadingCharts ? (
+                    <div className="h-64 flex items-center justify-center bg-background rounded-lg border border-border">
+                        <Loader2 className="animate-spin h-8 w-8 text-primary" />
+                    </div>
+                ) : chartData && chartData.length > 0 ? (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        <RevenueChart data={chartData} />
+                        <SalesChart data={chartData} />
+                    </div>
+                ) : (
+                    <div className="h-64 flex items-center justify-center bg-background rounded-lg border border-border">
+                        <p className="text-muted-foreground">No chart data found for this range.</p>
+                    </div>
+                )}
             </div>
         </div>
     );
