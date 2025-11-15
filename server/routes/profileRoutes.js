@@ -54,7 +54,11 @@ router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
     // 3. Profile Image update karein (agar nayi file upload hui hai)
     if (req.file) {
       // Check karein ki puraani image Cloudinary par hai ya nahi
-      if (user.profileImageCloudinaryId) {
+      if (
+        user.profileImageCloudinaryId &&
+        typeof user.profileImageCloudinaryId === "string" &&
+        user.profileImageCloudinaryId.length > 0
+      ) {
         // Puraani image ko Cloudinary se delete kar dein
         await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
       }

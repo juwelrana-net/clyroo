@@ -1,6 +1,6 @@
 // client/src/components/admin/EditProfileForm.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
@@ -17,24 +17,24 @@ import {
 
 const EditProfileForm = ({ isOpen, onClose, onProfileUpdate, currentUser }) => {
     // Form state ko current user data se bharein
-    const [name, setName] = useState(currentUser.name);
-    const [email, setEmail] = useState(currentUser.email);
+    const [name, setName] = useState(currentUser.name || '');
+    const [email, setEmail] = useState(currentUser.email || '');
     const [password, setPassword] = useState(''); // Password hamesha khaali rakhein
     const [profileImage, setProfileImage] = useState(null);
-    const [imagePreview, setImagePreview] = useState(currentUser.profileImageUrl);
+    const [imagePreview, setImagePreview] = useState(currentUser.profileImageUrl || null);
 
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     // Jab currentUser badle (e.g., refresh ke baad), toh form update ho
-    useEffect(() => {
-        if (currentUser) {
-            setName(currentUser.name);
-            setEmail(currentUser.email);
-            setImagePreview(currentUser.profileImageUrl);
-        }
-    }, [currentUser]);
+    // useEffect(() => {
+    //     if (currentUser) {
+    //         setName(currentUser.name);
+    //         setEmail(currentUser.email);
+    //         setImagePreview(currentUser.profileImageUrl);
+    //     }
+    // }, [currentUser]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];

@@ -1,7 +1,7 @@
 // client/src/pages/admin/DashboardPage.jsx
 
-import React from 'react';
-import { useOutletContext } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useOutletContext, useLocation } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
 import { Loader2 } from 'lucide-react';
 
@@ -25,7 +25,8 @@ const DashboardPage = () => {
         setStatRange,
         statRange,
         chartData,
-        loadingCharts
+        loadingCharts,
+        adminUser
     } = useOutletContext();
 
     // Greeting (waise hi rahega)
@@ -34,6 +35,32 @@ const DashboardPage = () => {
         if (hours < 12) return "Good Morning";
         if (hours < 18) return "Good Afternoon";
         return "Good Evening";
+    };
+
+    const [isWaving, setIsWaving] = useState(false);
+    const location = useLocation(); // Page change detect karne ke liye
+
+    useEffect(() => {
+        // 1. Animation shuru karein
+        setIsWaving(true);
+
+        // 2. Ek timer set karein jo 2.5 second (animation ki lambai) ke baad animation ko band kar dega
+        const timer = setTimeout(() => {
+            setIsWaving(false);
+        }, 2500); // 2.5 seconds
+
+        // 3. Cleanup function: Agar user page chhod de, toh timer ko clear kar dein
+        return () => clearTimeout(timer);
+
+    }, [location.pathname]); // Yeh effect tab chalega jab bhi aapka URL (page) badlega
+
+    const getFirstName = () => {
+        // Safety check: Agar user nahi hai ya naam nahi hai
+        if (!adminUser || !adminUser.name) {
+            return "Admin"; // Fallback
+        }
+        // "Juwel Rana" ko "Juwel" mein badlein
+        return adminUser.name.split(' ')[0];
     };
 
     // Agar stats abhi load nahi hue (safety check)
@@ -45,7 +72,20 @@ const DashboardPage = () => {
         <div>
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold">{getGreeting()}, Admin!</h1>
+                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                        {getGreeting()}, {getFirstName()}!
+
+                        {/* Emoji ko span mein daalein.
+                          Agar isWaving true hai, toh CSS class add hogi.
+                          'inline-block' zaroori hai taaki 'transform' (rotate) kaam kare.
+                        */}
+                        <span
+                            className={isWaving ? "wave-animation" : ""}
+                            style={{ display: 'inline-block' }}
+                        >
+                            👋
+                        </span>
+                    </h1>
                     <p className="text-muted-foreground">Aapke store ka overview yahaan hai.</p>
                 </div>
                 {/* Ab yeh Select component kaam karega */}
