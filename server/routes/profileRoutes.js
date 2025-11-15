@@ -1,20 +1,19 @@
 // server/routes/profileRoutes.js
 
+// --- YEH NAYI LINE ADD KAREIN ---
+console.log(">>> [SERVER] profileRoutes.js (v2 - Cloudinary Fix) file loaded.");
+// --- NAYI LINE KHATAM ---
+
 const express = require("express");
 const router = express.Router();
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
-const multerUpload = require("../middleware/multerUpload"); // Image upload ke liye
-// const cloudinary = require("../config/cloudinary");
+const multerUpload = require("../middleware/multerUpload");
 
 // --- ROUTE 1: Get Current Admin Details ---
-// (Navbar mein profile image dikhaane ke liye)
-// GET /api/profile/me
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    // authMiddleware ne req.user.id set kar diya hai
-    // Hum password chhodkar baaki sab bhej denge
     const user = await User.findById(req.user.id).select("-password");
     if (!user) {
       return res.status(404).json({ msg: "User not found" });
@@ -27,13 +26,10 @@ router.get("/me", authMiddleware, async (req, res) => {
 });
 
 // --- ROUTE 2: Update Admin Profile ---
-// (Name, Email, Password, ya Image update karne ke liye)
-// PUT /api/profile/update
 router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
   const { name, email, password } = req.body;
   const userId = req.user.id;
-
-  const cloudinary = require("../config/cloudinary");
+  const cloudinary = require("../config/cloudinary"); // Import ko andar rakhein
 
   try {
     let user = await User.findById(userId);
@@ -41,41 +37,39 @@ router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // 1. Text fields update karein (Name, Email)
     if (name) user.name = name;
-    if (email) user.email = email; // (Email update karna risky ho sakta hai, par hum option de rahe hain)
-
-    // 2. Password update karein (agar naya password bheja gaya hai)
+    if (email) user.email = email;
     if (password) {
       const salt = await bcrypt.genSalt(10);
       user.password = await bcrypt.hash(password, salt);
     }
 
-    // 3. Profile Image update karein (agar nayi file upload hui hai)
     if (req.file) {
-      // Check karein ki puraani image Cloudinary par hai ya nahi
+      // YEH HAI POORA SAFETY CHECK
       if (
         user.profileImageCloudinaryId &&
         typeof user.profileImageCloudinaryId === "string" &&
         user.profileImageCloudinaryId.length > 0
       ) {
-        // Puraani image ko Cloudinary se delete kar dein
-        await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
+        try {
+          await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
+        } catch (destroyErr) {
+          console.error(
+            "Cloudinary delete error (non-fatal):",
+            destroyErr.message
+          );
+          // Is error ko ignore karein aur aage badhein
+        }
       }
-      // Nayi image ka URL aur ID save karein
       user.profileImageUrl = req.file.path;
       user.profileImageCloudinaryId = req.file.filename;
     }
 
-    // 4. Sab changes ko save karein
     await user.save();
-
-    // Updated user data (bina password ke) wapas bhejein
     const updatedUser = await User.findById(userId).select("-password");
     res.json(updatedUser);
   } catch (err) {
-    console.error(err.message);
-    // Agar email duplicate hai toh error aayega
+    console.error("Profile update error:", err.message);
     if (err.code === 11000) {
       return res.status(400).json({ msg: "Email already exists." });
     }
@@ -83,10 +77,9 @@ router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
   }
 });
 
-// --- ROUTE 3: Delete Admin Account ---
-// DELETE /api/profile/delete
+// --- ROUTE 3: Delete Admin Account (FIXED) ---
 router.delete("/delete", authMiddleware, async (req, res) => {
-  const cloudinary = require("../config/cloudinary");
+  const cloudinary = require("../config/cloudinary"); // Import ko andar rakhein
 
   try {
     const user = await User.findById(req.user.id);
@@ -94,21 +87,26 @@ router.delete("/delete", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // 1. Cloudinary se image delete karein (Safe check ke saath)
+    // YEH BHI HAI POORA SAFETY CHECK
     if (
       user.profileImageCloudinaryId &&
       typeof user.profileImageCloudinaryId === "string" &&
       user.profileImageCloudinaryId.length > 0
     ) {
-      await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
+      try {
+        await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
+      } catch (destroyErr) {
+        console.error(
+          "Cloudinary delete error (non-fatal):",
+          destroyErr.message
+        );
+      }
     }
 
-    // 2. Database se user ko delete karein
     await user.deleteOne();
-
     res.json({ msg: "Admin account deleted successfully" });
   } catch (err) {
-    console.error(err.message);
+    console.error("Profile delete error:", err.message);
     res.status(500).send("Server Error");
   }
 });

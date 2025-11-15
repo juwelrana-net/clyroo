@@ -83,14 +83,14 @@
 
 @layer utilities {
   .wave-animation {
-    /* Animation ka naam: wave
-      Animation ki lambai: 2.5 seconds
-      Animation ka style: ease-in-out
-      Kitni baar chalega: 1 (ek baar)
-    */
-    animation: wave 2.5s ease-in-out 1;
-    transform-origin: 70% 70%; /* Taaki emoji haath ke base se ghume */
-  }
+    /*Animationkanaam:;
+    waveAnimationkilambai:;
+    2.5secondsAnimationkastyle:;
+    ease-in-outKitnibaarchalega:;
+    1(ekbaar)*/animation: wave 2.5s ease-in-out 1;
+    transform-origin: 70% 70%;
+    -webkit-animation: wave 2.5s ease-in-out 1;
+}
 
   /* Keyframes batate hain ki animation kaise chalega */
   @keyframes wave {
