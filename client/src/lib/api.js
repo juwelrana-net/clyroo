@@ -5,25 +5,28 @@ import axios from "axios";
 // 1. Naya axios instance banayein
 const api = axios.create({
   baseURL: import.meta.env.PROD
-    ? import.meta.env.VITE_API_BASE_URL // Production mein yeh URL use karega
-    : "/", // Development mein root use karega (taaki proxy kaam kare)
+    ? import.meta.env.VITE_API_BASE_URL // Production
+    : "/", // Development (proxy ke liye)
 });
 
-// 2. Automatic Token Header (Yeh bohot future-proof hai)
-// Yeh aapke har admin request ke saath 'x-auth-token' khud bhej dega
+// 2. NAYA (FIXED) INTERCEPTOR
+// Yeh har request ko bhejte waqt check karega
 api.interceptors.request.use(
   (config) => {
-    // --- YEH LINE UPDATE HUI HAI ---
-    // Ab hum check karenge ki URL mein '/admin' kahin bhi hai ya nahi
-    // Ya phir URL '/api/auth' (login/register) ke alawa hai
-    const isAdminRoute = config.url.includes("/admin");
+    // Local storage se token padhein
+    const token = localStorage.getItem("adminToken");
 
-    if (isAdminRoute) {
-      const token = localStorage.getItem("adminToken");
-      if (token) {
-        config.headers["x-auth-token"] = token;
-      }
+    // Check karein ki URL login ya register ka toh nahi hai
+    const isAuthRoute =
+      config.url.includes("/api/auth/login") ||
+      config.url.includes("/api/auth/register");
+
+    // Agar token hai AUR yeh request login/register ki NAHI hai,
+    // toh header mein token add karo
+    if (token && !isAuthRoute) {
+      config.headers["x-auth-token"] = token;
     }
+
     return config;
   },
   (error) => {

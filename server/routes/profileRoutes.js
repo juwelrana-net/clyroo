@@ -6,7 +6,7 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/User");
 const authMiddleware = require("../middleware/authMiddleware");
 const multerUpload = require("../middleware/multerUpload"); // Image upload ke liye
-const cloudinary = require("../config/cloudinary"); // Image delete ke liye
+// const cloudinary = require("../config/cloudinary");
 
 // --- ROUTE 1: Get Current Admin Details ---
 // (Navbar mein profile image dikhaane ke liye)
@@ -32,6 +32,8 @@ router.get("/me", authMiddleware, async (req, res) => {
 router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
   const { name, email, password } = req.body;
   const userId = req.user.id;
+
+  const cloudinary = require("../config/cloudinary");
 
   try {
     let user = await User.findById(userId);
@@ -80,6 +82,8 @@ router.put("/update", [authMiddleware, multerUpload], async (req, res) => {
 // --- ROUTE 3: Delete Admin Account ---
 // DELETE /api/profile/delete
 router.delete("/delete", authMiddleware, async (req, res) => {
+  const cloudinary = require("../config/cloudinary");
+
   try {
     const user = await User.findById(req.user.id);
     if (!user) {
