@@ -8,47 +8,36 @@ import AdminHeader from '@/components/admin/AdminHeader.jsx';
 import { Loader2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-// Saare Popups (Edit Forms) ko import karein
+// ... (Saare Popup/Edit Form imports waise hi rahenge) ...
 import EditProductForm from '@/components/EditProductForm.jsx';
 import EditCredentialForm from '@/components/EditCredentialForm.jsx';
 import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx';
 import EditContactForm from '@/components/EditContactForm.jsx';
 import EditCategoryForm from '@/components/EditCategoryForm.jsx';
-
 import EditProfileForm from '@/components/admin/EditProfileForm.jsx';
 import DeleteAccountDialog from '@/components/admin/DeleteAccountDialog.jsx';
 
 const AdminLayout = () => {
+    // ... (Saari states waise hi rahengi) ...
     const navigate = useNavigate();
     const location = useLocation();
     const [adminUser, setAdminUser] = useState(null);
     const [loadingUser, setLoadingUser] = useState(true);
-
-    // Data States
     const [products, setProducts] = useState([]);
     const [categories, setCategories] = useState([]);
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [contactLinks, setContactLinks] = useState([]);
-
-    // Stats State
     const [dashboardStats, setDashboardStats] = useState(null);
     const [statRange, setStatRange] = useState('30days');
     const [loadingStats, setLoadingStats] = useState(true);
-
     const [chartData, setChartData] = useState([]);
     const [loadingCharts, setLoadingCharts] = useState(true);
-
-    // Loading States
     const [loadingProducts, setLoadingProducts] = useState(true);
     const [loadingCategories, setLoadingCategories] = useState(true);
     const [loadingMethods, setLoadingMethods] = useState(true);
     const [loadingLinks, setLoadingLinks] = useState(true);
-
-    // Refs
     const manageCredentialsRef = useRef(null);
     const managePaymentMethodsRef = useRef(null);
-
-    // Popup States
     const [isEditOpen, setIsEditOpen] = useState(false);
     const [editingProduct, setEditingProduct] = useState(null);
     const [isCredEditOpen, setIsCredEditOpen] = useState(false);
@@ -62,21 +51,18 @@ const AdminLayout = () => {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
 
-    // User Data Fetch (Header se move kiya gaya)
+    // ... (Saare functions jaise fetchUser, fetchDashboardStats, etc. waise hi rahenge) ...
     const fetchUser = async () => {
         try {
-            // Hum loading ko true set nahi kar rahe taaki page refresh na dikhe
             const res = await api.get('/api/profile/me');
             setAdminUser(res.data);
         } catch (err) {
             console.error("Failed to fetch admin user", err);
-            handleAuthError(err); // Auth error handle karein
+            handleAuthError(err);
         } finally {
-            if (loadingUser) setLoadingUser(false); // Sirf pehli baar loading state ko false karein
+            if (loadingUser) setLoadingUser(false);
         }
     };
-
-    // --- Data Fetching Functions ---
     const fetchDashboardStats = async (range) => {
         try {
             setLoadingStats(true);
@@ -89,7 +75,6 @@ const AdminLayout = () => {
             setLoadingStats(false);
         }
     };
-
     const fetchChartData = async (range) => {
         try {
             setLoadingCharts(true);
@@ -97,13 +82,11 @@ const AdminLayout = () => {
             setChartData(res.data);
         } catch (err) {
             console.error("Chart data fetch nahi ho paya", err);
-            // Auth error check karein (optional but good)
             handleAuthError(err);
         } finally {
             setLoadingCharts(false);
         }
     };
-
     const fetchProducts = async () => {
         try {
             setLoadingProducts(true);
@@ -115,7 +98,6 @@ const AdminLayout = () => {
             setLoadingProducts(false);
         }
     };
-
     const fetchCategories = async () => {
         try {
             setLoadingCategories(true);
@@ -128,7 +110,6 @@ const AdminLayout = () => {
             setLoadingCategories(false);
         }
     };
-
     const fetchPaymentMethods = async () => {
         try {
             setLoadingMethods(true);
@@ -141,7 +122,6 @@ const AdminLayout = () => {
             setLoadingMethods(false);
         }
     };
-
     const fetchContactLinks = async () => {
         try {
             setLoadingLinks(true);
@@ -154,14 +134,12 @@ const AdminLayout = () => {
             setLoadingLinks(false);
         }
     };
-
     const handleAuthError = (err) => {
         if (err.response && err.response.status === 401) {
             localStorage.removeItem('adminToken');
             navigate('/login');
         }
     };
-
     useEffect(() => {
         fetchUser();
         fetchProducts();
@@ -171,12 +149,10 @@ const AdminLayout = () => {
         fetchDashboardStats(statRange);
         fetchChartData(statRange);
     }, [navigate]);
-
     useEffect(() => {
         fetchDashboardStats(statRange);
         fetchChartData(statRange);
     }, [statRange]);
-
     useEffect(() => {
         if (location.pathname === '/admin/dashboard' || location.pathname === '/admin') {
             fetchDashboardStats(statRange);
@@ -184,8 +160,6 @@ const AdminLayout = () => {
             fetchProducts();
         }
     }, [location.pathname, statRange]);
-
-    // --- Handlers ---
     const handleProductChange = () => fetchProducts();
     const handleEditProduct = (product) => {
         setEditingProduct(product);
@@ -222,20 +196,16 @@ const AdminLayout = () => {
         setEditingContactLink(link);
         setIsContactEditOpen(true);
     };
-
     const handleEditProfile = () => {
         setIsEditProfileOpen(true);
     };
-
     const handleDeleteAccount = () => {
         setIsDeleteAccountOpen(true);
     };
-
     const handleProfileUpdate = () => {
-        fetchUser(); // fetchUser ko call karein
+        fetchUser();
     };
 
-    // --- Loading State ---
     const isLoading = loadingUser || loadingProducts || loadingCategories || loadingMethods || loadingLinks || loadingStats || loadingCharts;
 
     if (isLoading) {
@@ -269,40 +239,33 @@ const AdminLayout = () => {
         handleEditPaymentMethod,
         handleContactChange,
         handleEditContactLink,
-        adminUser: adminUser
+        adminUser: adminUser // adminUser ko context mein pass karein
     };
 
-    // --- YAHAN SE JSX UPDATE HUA HAI ---
     return (
-        // 1. Pura background `bg-secondary/30` hoga aur padding `p-4` ya `p-8` hogi
         <div className="h-screen bg-secondary/30 p-4 md:p-8">
-
-            {/* 2. Ek container banayein jo max-width-7xl (1280px) hoga */}
             <div className="max-w-7xl mx-auto flex flex-col md:flex-row gap-6 w-full h-full">
 
-                {/* 3. Sidebar (yeh abhi bhi w-64 hai) */}
-                <AdminSidebar />
+                {/* --- YEH UPDATE HAI --- */}
+                {/* adminUser ko desktop sidebar mein pass karein */}
+                <AdminSidebar adminUser={adminUser} />
+                {/* --- UPDATE KHATAM --- */}
 
-                {/* 4. Main Content Area (Header + Content) */}
                 <div className="flex-1 flex flex-col gap-6 w-full">
-
-                    {/* Header (Navbar) */}
                     <AdminHeader
                         adminUser={adminUser}
                         loadingUser={loadingUser}
                         onEditProfile={handleEditProfile}
                         onDeleteAccount={handleDeleteAccount}
                     />
-
-                    {/* Main Panel (Content) */}
                     <main className="flex-1 bg-background rounded-xl border border-border shadow-lg p-4 md:p-8">
-                        {/* Saara data aur functions Outlet ke zariye child pages ko pass karein */}
+                        {/* Ab Outlet context ke zariye adminUser pass karega */}
                         <Outlet context={outletContext} />
                     </main>
                 </div>
             </div>
 
-            {/* --- Saare Popups waise hi rahenge --- */}
+            {/* ... (Saare popups waise hi rahenge) ... */}
             {isEditOpen && (
                 <EditProductForm
                     product={editingProduct}
@@ -312,7 +275,6 @@ const AdminLayout = () => {
                     categories={categories}
                 />
             )}
-            {/* ... (baaki saare popups) ... */}
             {isCredEditOpen && (
                 <EditCredentialForm
                     credential={editingCredential}
@@ -345,7 +307,6 @@ const AdminLayout = () => {
                     onCategoryChange={handleCategoryChange}
                 />
             )}
-
             {isEditProfileOpen && (
                 <EditProfileForm
                     isOpen={isEditProfileOpen}
@@ -354,7 +315,6 @@ const AdminLayout = () => {
                     currentUser={adminUser}
                 />
             )}
-
             {isDeleteAccountOpen && (
                 <DeleteAccountDialog
                     isOpen={isDeleteAccountOpen}

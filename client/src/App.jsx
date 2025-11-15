@@ -40,26 +40,25 @@ import CategoriesPage from './pages/admin/CategoriesPage.jsx';
 import ContactsPage from './pages/admin/ContactsPage.jsx';
 import NotificationsPage from './pages/admin/NotificationsPage.jsx';
 
+// --- YEH NAYA IMPORT ADD HUA HAI ---
+import AdminControlPage from './pages/admin/AdminControlPage.jsx';
+// --- NAYA IMPORT KHATAM ---
 
-// --- NAYA HELPER COMPONENT (HEADER/MENU) ---
-// Yeh component check karega ki public header dikhana hai ya nahi
+
+// ... (AppContentComponent, AppFooterComponent, aur App component ka logic waise hi rahega) ...
+
 const AppContentComponent = (props) => {
   const { pathname } = useLocation();
-
-  // Agar route "/admin" se shuru hota hai, toh public header/menu mat dikhao
   if (pathname.startsWith('/admin')) {
     return null;
   }
-
   const {
     isMobileMenuOpen, setIsMobileMenuOpen, isContactOpen, setIsContactOpen,
     publicContactLinks, contactLoading, closeMobileMenu, openContactPopup,
     navLinkClass, renderContactButton
   } = props;
-
   return (
     <>
-      {/* --- "CONTACT US" POPUP --- */}
       <Dialog open={isContactOpen} onOpenChange={setIsContactOpen}>
         <DialogContent className="max-w-xs rounded-lg">
           <DialogHeader>
@@ -81,19 +80,14 @@ const AppContentComponent = (props) => {
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* --- PUBLIC HEADER --- */}
       <header className="border-b border-border sticky top-0 bg-background/90 backdrop-blur-sm z-10">
         <nav className="container mx-auto max-w-7xl px-4 h-16 flex items-center justify-between">
-          {/* Brand Name (Left) */}
           <div className="flex items-center gap-2">
             <Link to="/" className="flex items-center gap-2">
               <Package size={24} className="text-primary" />
               <span className="text-xl font-bold text-primary">clyroo</span>
             </Link>
           </div>
-
-          {/* Desktop Navlinks (Middle) */}
           <div className="hidden md:flex items-center gap-6">
             <NavLink to="/inquiry" className={navLinkClass}>
               Order Inquiry
@@ -105,8 +99,6 @@ const AppContentComponent = (props) => {
               Contact Us
             </Button>
           </div>
-
-          {/* Icons (Right) - Desktop */}
           <div className="hidden md:flex items-center gap-2">
             <Link to="/login">
               <Button variant="outline" size="icon">
@@ -116,8 +108,6 @@ const AppContentComponent = (props) => {
             </Link>
             <ThemeToggle />
           </div>
-
-          {/* Mobile Icons (Theme + Hamburger) */}
           <div className="md:hidden flex items-center gap-2">
             <ThemeToggle />
             <Button variant="outline" size="icon" onClick={() => setIsMobileMenuOpen(true)}>
@@ -126,8 +116,6 @@ const AppContentComponent = (props) => {
           </div>
         </nav>
       </header>
-
-      {/* --- MOBILE MENU (BOTTOM SHEET) --- */}
       <div
         className={cn(
           "fixed bottom-0 left-0 right-0 z-50 w-full overflow-hidden bg-background p-6 shadow-[0_-10px_30px_-15px_rgba(0,0,0,0.1)] transition-transform duration-300 ease-in-out dark:shadow-[0_-10px_30px_-15px_rgba(255,255,255,0.1)]",
@@ -154,33 +142,22 @@ const AppContentComponent = (props) => {
     </>
   );
 };
-
-// --- NAYA HELPER COMPONENT (FOOTER) ---
-// Yeh component check karega ki public footer dikhana hai ya nahi
 const AppFooterComponent = () => {
   const { pathname } = useLocation();
-
-  // Agar route "/admin" se shuru hota hai, toh public footer mat dikhao
   if (pathname.startsWith('/admin')) {
     return null;
   }
-
   return (
     <div className="container mx-auto max-w-7xl px-4">
       <Footer />
     </div>
   );
 };
-
-
-// --- MAIN APP COMPONENT ---
-// Ab yeh bahut clean hai
 function App() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [publicContactLinks, setPublicContactLinks] = useState([]);
   const [contactLoading, setContactLoading] = useState(false);
-
   useEffect(() => {
     const fetchPublicContacts = async () => {
       setContactLoading(true);
@@ -195,24 +172,21 @@ function App() {
     };
     fetchPublicContacts();
   }, []);
-
   const closeMobileMenu = () => setIsMobileMenuOpen(false);
   const openContactPopup = () => {
     closeMobileMenu();
     setIsContactOpen(true);
   };
-
   const navLinkClass = ({ isActive }) =>
     cn(
       "text-sm font-medium transition-colors hover:text-primary",
       isActive ? "text-primary" : "text-muted-foreground"
     );
-
   const renderContactButton = (link) => {
     if (link.type === 'whatsapp') {
       return (
         <Button key={link._id} asChild className="w-full bg-green-500 hover:bg-green-600 text-white">
-          <a href={`https://wa.me/${link.value}`} target="_blank" rel="noopener noreferrer">
+          <a href={`httpshttps://wa.me/${link.value}`} target="_blank" rel="noopener noreferrer">
             <MessageCircle className="mr-2 h-5 w-5" /> {link.displayText}
           </a>
         </Button>
@@ -221,7 +195,7 @@ function App() {
     if (link.type === 'telegram') {
       return (
         <Button key={link._id} asChild className="w-full bg-blue-500 hover:bg-blue-600 text-white">
-          <a href={`https://t.me/${link.value}`} target="_blank" rel="noopener noreferrer">
+          <a href={`httpshttps://t.me/${link.value}`} target="_blank" rel="noopener noreferrer">
             <Send className="mr-2 h-5 w-5" /> {link.displayText}
           </a>
         </Button>
@@ -229,8 +203,6 @@ function App() {
     }
     return null;
   };
-
-  // Saare props ko AppContentComponent mein pass karne ke liye object
   const contentProps = {
     isMobileMenuOpen, setIsMobileMenuOpen, isContactOpen, setIsContactOpen,
     publicContactLinks, contactLoading, closeMobileMenu, openContactPopup,
@@ -240,7 +212,6 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
-      {/* Public Header/Menu (sirf public routes par dikhega) */}
       <AppContentComponent {...contentProps} />
 
       <main className="flex-grow">
@@ -262,9 +233,7 @@ function App() {
           {/* Admin Routes */}
           <Route element={<AdminRoute />}>
             <Route path="/admin" element={<AdminLayout />}>
-              {/* Default route */}
               <Route index element={<DashboardPage />} />
-              {/* Baki saare admin pages */}
               <Route path="dashboard" element={<DashboardPage />} />
               <Route path="products" element={<ProductsPage />} />
               <Route path="stocks" element={<StocksPage />} />
@@ -272,12 +241,16 @@ function App() {
               <Route path="categories" element={<CategoriesPage />} />
               <Route path="contacts" element={<ContactsPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
+
+              {/* --- YEH NAYA ROUTE ADD HUA HAI --- */}
+              <Route path="admincontrol" element={<AdminControlPage />} />
+              {/* --- NAYA ROUTE KHATAM --- */}
+
             </Route>
           </Route>
         </Routes>
       </main>
 
-      {/* Public Footer (sirf public routes par dikhega) */}
       <AppFooterComponent />
     </div>
   );

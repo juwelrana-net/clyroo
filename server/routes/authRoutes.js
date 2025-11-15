@@ -6,42 +6,40 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 require("dotenv").config();
-
-// --- YEH NAYA IMPORT ADD KAREIN ---
-// Humara banaya hua file upload middleware
 const multerUpload = require("../middleware/multerUpload");
-// --- NAYA IMPORT KHATAM ---
 
-// ENV se JWT_SECRET lene ke liye
 const JWT_SECRET = process.env.JWT_SECRET;
 
 // --- YEH POORA ROUTE UPDATE HO GAYA HAI ---
 // ROUTE 1: Register Admin (Signup)
-// POST /api/auth/register
-// multerUpload ko hum middleware ki tarah request handler se pehle daal denge
 router.post("/register", multerUpload, async (req, res) => {
-  // Ab hum 'name', 'email', 'password' ko body se lenge
   const { name, email, password } = req.body;
 
-  // Basic validation
   if (!name || !email || !password) {
     return res
       .status(400)
       .json({ msg: "Please enter all fields (Name, Email, Password)" });
   }
 
-  // Check karein ki file upload hui ya nahi (optional hai)
-  if (!req.file) {
-    console.log("Warning: No profile image uploaded for new user.");
-    // Hum register fail nahi karenge, bas image empty rahegi
-  }
-
   try {
-    // 1. Check karein ki user pehle se hai
+    // --- NAYA CHECK ---
+    // Check karein ki database mein pehle se koi user hai ya nahi
+    const adminCount = await User.countDocuments();
+    if (adminCount > 0) {
+      // Agar pehle se admin hain, toh public registration ko block kar dein
+      // Agar user ne image upload ki thi, toh usse delete kar dein
+      if (req.file) {
+        const cloudinary = require("../config/cloudinary");
+        await cloudinary.uploader.destroy(req.file.filename);
+      }
+      return res
+        .status(403) // 403 Forbidden
+        .json({ msg: "Registration is closed. An admin already exists." });
+    }
+    // --- CHECK KHATAM ---
+
     let user = await User.findOne({ email });
     if (user) {
-      // Agar user pehle se hai, toh Cloudinary par upload hui image ko delete kar dein
-      // (Yeh ek achha practice hai)
       if (req.file) {
         const cloudinary = require("../config/cloudinary");
         await cloudinary.uploader.destroy(req.file.filename);
@@ -49,24 +47,33 @@ router.post("/register", multerUpload, async (req, res) => {
       return res.status(400).json({ msg: "User already exists" });
     }
 
-    // 2. Naya user banayein
+    // --- NAYA PERMISSION OBJECT ---
+    // Kyunki yeh pehla admin hai (adminCount === 0), isse saare permissions de dein
+    const superAdminPermissions = {
+      manageProducts: true,
+      manageStock: true,
+      managePayments: true,
+      manageCategories: true,
+      manageContacts: true,
+      manageNotifications: true,
+      manageAdmins: true,
+    };
+    // --- PERMISSION OBJECT KHATAM ---
+
     user = new User({
-      name: name, // Naya field
+      name: name,
       email: email,
       password: password,
-      // req.file se image ka URL aur ID save karein (agar file hai)
       profileImageUrl: req.file ? req.file.path : "",
       profileImageCloudinaryId: req.file ? req.file.filename : "",
+      permissions: superAdminPermissions, // <-- Naye permissions yahaan set karein
     });
 
-    // 3. Password ko hash karein
     const salt = await bcrypt.genSalt(10);
     user.password = await bcrypt.hash(password, salt);
 
-    // 4. User ko save karein
     await user.save();
 
-    // 5. Token banayein aur return karein
     const payload = {
       user: {
         id: user.id,
@@ -82,11 +89,8 @@ router.post("/register", multerUpload, async (req, res) => {
     res.status(500).send("Server error");
   }
 });
-// --- REGISTER ROUTE KHATAM HUA ---
 
-// --- LOGIN ROUTE (Waisa hi rahega) ---
-// ROUTE 2: Login Admin (Signin)
-// POST /api/auth/login
+// ROUTE 2: Login Admin (Signin) - (Ismein koi change nahi hai)
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -95,19 +99,16 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    // 1. User ko dhundhein
     let user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ msg: "Invalid Credentials" });
     }
 
-    // 2. Password compare karein
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ msg: "Invalid Credentials" });
     }
 
-    // 3. Token banayein aur return karein
     const payload = {
       user: {
         id: user.id,
@@ -123,5 +124,20 @@ router.post("/login", async (req, res) => {
     res.status(500).send("Server error");
   }
 });
+
+// --- YEH NAYA ROUTE ADD HUA HAI ---
+// ROUTE 3: Check Registration Status (Public)
+// Yeh frontend ko batayega ki register page dikhana hai ya nahi
+router.get("/registration-status", async (req, res) => {
+  try {
+    const adminCount = await User.countDocuments();
+    // Agar 0 admin hain, tabhi registration allowed hai
+    res.json({ allowRegistration: adminCount === 0 });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send("Server error");
+  }
+});
+// --- NAYA ROUTE KHATAM ---
 
 module.exports = router;

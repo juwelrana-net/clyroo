@@ -1,94 +1,151 @@
 // client/src/pages/RegisterPage.jsx
 
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button.jsx';
-import { Input } from '@/components/ui/input.jsx';
-import { Label } from '@/components/ui/label.jsx'; // Label import karein
-import { AlertCircle, Eye, EyeOff, User, Loader2 } from 'lucide-react'; // Icons import karein
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import { useNavigate, Link } from "react-router-dom"; // useLocation add karein
+import { Button } from "@/components/ui/button.jsx";
+import { Input } from "@/components/ui/input.jsx";
+import { Label } from "@/components/ui/label.jsx";
+import {
+    AlertCircle,
+    Eye,
+    EyeOff,
+    User,
+    Loader2,
+    ShieldAlert, // Naya icon
+} from "lucide-react";
 
 const RegisterPage = () => {
-    // --- Nayi State ---
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [profileImage, setProfileImage] = useState(null); // File object save karega
-    const [imagePreview, setImagePreview] = useState(null); // Image preview URL save karega
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [profileImage, setProfileImage] = useState(null);
+    const [imagePreview, setImagePreview] = useState(null);
 
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(false); // Loading state
+    const [loading, setLoading] = useState(false);
+
+    // --- NAYI STATE ---
+    const [checkingStatus, setCheckingStatus] = useState(true); // Status check karne ke liye loader
+    const [registrationAllowed, setRegistrationAllowed] = useState(false); // Status save karne ke liye
 
     const navigate = useNavigate();
 
-    // --- Naya Handler: Image Select ---
+    // --- NAYA EFFECT ---
+    // Page load par check karein ki registration allowed hai ya nahi
+    useEffect(() => {
+        const checkRegistrationStatus = async () => {
+            try {
+                setCheckingStatus(true);
+                const res = await axios.get("/api/auth/registration-status");
+                if (res.data.allowRegistration) {
+                    setRegistrationAllowed(true);
+                } else {
+                    // Agar registration allowed nahi hai, toh login page par bhej dein
+                    // 'replace: true' history mein entry nahi banayega
+                    // 'state' se hum login page par ek message bhejenge
+                    navigate("/login", {
+                        replace: true,
+                        state: {
+                            message: "Registration is closed. Only one admin account is allowed.",
+                        },
+                    });
+                }
+            } catch (err) {
+                setError("Could not check registration status. Please try again later.");
+            } finally {
+                setCheckingStatus(false);
+            }
+        };
+
+        checkRegistrationStatus();
+    }, [navigate]);
+    // --- NAYA EFFECT KHATAM ---
+
     const handleImageChange = (e) => {
         const file = e.target.files[0];
         if (file) {
             setProfileImage(file);
-            // File ko preview karne ke liye URL banayein
             setImagePreview(URL.createObjectURL(file));
         }
     };
 
-    // --- Naya Handler: Password Toggle ---
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
     };
 
-    // --- Update Handler: Form Submit (Ab FormData bhejega) ---
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
         setLoading(true);
 
-        // File upload ke liye humein FormData ka istemal karna hoga
         const formData = new FormData();
-        formData.append('name', name);
-        formData.append('email', email);
-        formData.append('password', password);
+        formData.append("name", name);
+        formData.append("email", email);
+        formData.append("password", password);
 
         if (profileImage) {
-            formData.append('profileImage', profileImage); // File ko append karein
+            formData.append("profileImage", profileImage);
         }
 
         try {
-            // Backend API ko FormData bhej
-            // Axios 'Content-Type': 'multipart/form-data' khud set kar dega
-            await axios.post('/api/auth/register', formData);
+            // Register route ko call karein (yeh ab protected hai)
+            await axios.post("/api/auth/register", formData);
 
             // Register success hone par login page par bhej dein
-            navigate('/login');
-
+            navigate("/login", {
+                state: { message: "Registration successful! Please log in." },
+            });
         } catch (err) {
-            setError(err.response?.data?.msg || 'Registration failed');
+            setError(err.response?.data?.msg || "Registration failed");
         } finally {
             setLoading(false);
         }
     };
 
-    // --- NAYA UI ---
+    // --- LOADER (JAB TAK STATUS CHECK HO RAHA HAI) ---
+    if (checkingStatus) {
+        return (
+            <div className="min-h-screen flex items-center justify-center text-primary">
+                <Loader2 className="animate-spin mr-2" size={24} />
+                Checking registration status...
+            </div>
+        );
+    }
+
+    // --- AGAR REGISTRATION ALLOWED NAHI HAI (YEH EK SAFETY CHECK HAI) ---
+    if (!registrationAllowed) {
+        // Waise toh hum pehle hi redirect kar denge, par yeh fallback hai
+        return null;
+    }
+
+    // --- AGAR REGISTRATION ALLOWED HAI, TOH FORM DIKHAYEIN ---
     return (
         <div className="container mx-auto max-w-md px-4 py-12">
             <div className="bg-background border border-border rounded-xl shadow-lg p-8">
-                <h1 className="text-3xl font-bold text-center mb-6 text-primary">Create Admin Account</h1>
+                <h1 className="text-3xl font-bold text-center mb-2 text-primary">
+                    Create Super Admin Account
+                </h1>
+                <p className="text-center text-muted-foreground mb-6">
+                    This will be the first and only admin account created from this page.
+                </p>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-
-                    {/* --- Naya: Profile Image Upload --- */}
                     <div className="flex flex-col items-center space-y-2">
                         <Label htmlFor="profileImage">Profile Image (Optional)</Label>
                         <div className="relative">
-                            {/* Image Preview ya Placeholder */}
                             <div className="w-24 h-24 rounded-full bg-secondary border border-border flex items-center justify-center overflow-hidden">
                                 {imagePreview ? (
-                                    <img src={imagePreview} alt="Profile Preview" className="w-full h-full object-cover" />
+                                    <img
+                                        src={imagePreview}
+                                        alt="Profile Preview"
+                                        className="w-full h-full object-cover"
+                                    />
                                 ) : (
                                     <User className="w-12 h-12 text-muted-foreground" />
                                 )}
                             </div>
-                            {/* File Input (hidden) */}
                             <Input
                                 id="profileImage"
                                 type="file"
@@ -96,27 +153,24 @@ const RegisterPage = () => {
                                 className="hidden"
                                 onChange={handleImageChange}
                             />
-                            {/* File Input Trigger Button */}
                             <Button
                                 type="button"
                                 variant="outline"
                                 size="sm"
                                 className="absolute bottom-0 right-0 rounded-full"
-                                onClick={() => document.getElementById('profileImage').click()}
+                                onClick={() => document.getElementById("profileImage").click()}
                             >
                                 Edit
                             </Button>
                         </div>
                     </div>
 
-                    {/* Error Message */}
                     {error && (
                         <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
                             <AlertCircle size={16} /> {error}
                         </div>
                     )}
 
-                    {/* --- Naya: Name Input --- */}
                     <div className="space-y-1">
                         <Label htmlFor="name">Full Name</Label>
                         <Input
@@ -129,7 +183,6 @@ const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Email Input */}
                     <div className="space-y-1">
                         <Label htmlFor="email">Email</Label>
                         <Input
@@ -142,20 +195,18 @@ const RegisterPage = () => {
                         />
                     </div>
 
-                    {/* Password Input (Show/Hide ke saath) */}
                     <div className="space-y-1">
                         <Label htmlFor="password">Password</Label>
                         <div className="relative">
                             <Input
                                 id="password"
-                                type={showPassword ? "text" : "password"} // Type ko state se control karein
+                                type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="pr-10" // Icon ke liye jagah banayein
+                                className="pr-10"
                             />
-                            {/* Toggle Button */}
                             <Button
                                 type="button"
                                 variant="ghost"
@@ -168,7 +219,6 @@ const RegisterPage = () => {
                         </div>
                     </div>
 
-                    {/* Submit Button */}
                     <Button type="submit" className="w-full" disabled={loading}>
                         {loading ? <Loader2 className="animate-spin mr-2" /> : null}
                         {loading ? "Registering..." : "Create Account"}

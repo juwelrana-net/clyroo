@@ -22,6 +22,7 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const adminDeviceRoutes = require("./routes/adminDeviceRoutes");
 const siteSettingsRoutes = require("./routes/siteSettingsRoutes");
 const profileRoutes = require("./routes/profileRoutes");
+const adminControlRoutes = require("./routes/adminControlRoutes");
 
 const app = express();
 
@@ -50,6 +51,7 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/admin", adminDeviceRoutes);
 app.use("/api/settings", siteSettingsRoutes);
 app.use("/api/profile", profileRoutes);
+app.use("/api/admin-control", adminControlRoutes);
 
 // Database Connection
 mongoose

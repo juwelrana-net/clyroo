@@ -3,12 +3,12 @@
 import React from 'react';
 import AdminSidebarContent from './AdminSidebarContent.jsx';
 
-const AdminSidebar = () => {
+// adminUser prop receive karein
+const AdminSidebar = ({ adminUser }) => {
     return (
-        // --- YAHAN SE `m-4` HATA DIYA GAYA HAI ---
-        // `flex-shrink-0` add kiya taaki yeh chhota na ho
         <aside className="hidden md:block w-64 bg-background rounded-xl border border-border shadow-lg flex-shrink-0">
-            <AdminSidebarContent />
+            {/* adminUser prop ko AdminSidebarContent mein pass karein */}
+            <AdminSidebarContent adminUser={adminUser} />
         </aside>
     );
 };
