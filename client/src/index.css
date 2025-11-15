@@ -116,11 +116,16 @@
   }
 
   .avatar-glow-ring {
-    @apply absolute -inset-1 rounded-full:;
+    position: absolute;
+    top: -0.25rem;
+    bottom: -0.25rem;
+    left: -0.25rem;
+    right: -0.25rem;
+    border-radius: 9999px;
     box-shadow: 0 0 0 2px hsl(var(--primary));
     animation: pulse-glow 2s infinite ease-in-out;
     -webkit-animation: pulse-glow 2s infinite ease-in-out;
-  }
+}
 
   @keyframes pulse-glow {
     0% {

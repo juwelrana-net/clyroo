@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Switch } from '@/components/ui/switch.jsx';
-import { User, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Loader2, AlertCircle, Eye, EyeOff, Edit } from 'lucide-react';
 import {
     Dialog,
     DialogContent,

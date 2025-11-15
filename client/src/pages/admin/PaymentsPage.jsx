@@ -4,29 +4,32 @@ import React from 'react';
 import { useOutletContext } from 'react-router-dom';
 import AddPaymentMethodForm from '@/components/AddPaymentMethodForm.jsx';
 import ManagePaymentMethods from '@/components/ManagePaymentMethods.jsx';
+import AccessDenied from '@/components/admin/AccessDenied.jsx'; // Naya import
 
 const PaymentsPage = () => {
-    // AdminLayout (parent) se data aur functions receive karein
     const {
+        adminUser, // adminUser ko context se lein
         paymentMethods,
         managePaymentMethodsRef,
         handlePaymentMethodChange,
         handleEditPaymentMethod
     } = useOutletContext();
 
+    // --- NAYA PERMISSION CHECK ---
+    if (!adminUser?.permissions?.managePayments) {
+        return <AccessDenied pageName="Manage Payments" />;
+    }
+    // --- CHECK KHATAM ---
+
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Manage Payment Methods</h1>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-                {/* Column 1: Add Method */}
                 <AddPaymentMethodForm
                     onMethodChange={handlePaymentMethodChange}
                 />
-
-                {/* Column 2: Manage Methods */}
                 <ManagePaymentMethods
-                    ref={managePaymentMethodsRef} // Ref ko yahaan pass karein
+                    ref={managePaymentMethodsRef}
                     paymentMethods={paymentMethods}
                     onMethodChange={handlePaymentMethodChange}
                     onEdit={handleEditPaymentMethod}
