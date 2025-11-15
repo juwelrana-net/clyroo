@@ -7,9 +7,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 const Product = require("../models/Product");
 const Credential = require("../models/Credential");
 const Order = require("../models/Order");
-
-// --- YEH NAYA IMPORT ADD KAREIN ---
 const { deliverProduct } = require("../utils/delivery");
+const { getChartData } = require("../utils/chartDataHelper");
 
 // ROUTE 1: Add Product...
 router.post("/products", authMiddleware, async (req, res) => {
@@ -283,7 +282,7 @@ router.get("/stats/charts", authMiddleware, async (req, res) => {
     const { range } = req.query; // '7days', '30days', 'alltime', 'yesterday'
     
     // Helper function ko call karein
-    const chartData = await getChartData(range);
+    const chartData = await getChartData(Order, range);
     
     res.json(chartData);
 
