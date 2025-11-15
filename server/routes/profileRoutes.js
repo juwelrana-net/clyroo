@@ -94,16 +94,17 @@ router.delete("/delete", authMiddleware, async (req, res) => {
       return res.status(404).json({ msg: "User not found" });
     }
 
-    // 1. Cloudinary se image delete karein (agar hai)
-    if (user.profileImageCloudinaryId) {
+    // 1. Cloudinary se image delete karein (Safe check ke saath)
+    if (
+      user.profileImageCloudinaryId &&
+      typeof user.profileImageCloudinaryId === "string" &&
+      user.profileImageCloudinaryId.length > 0
+    ) {
       await cloudinary.uploader.destroy(user.profileImageCloudinaryId);
     }
 
     // 2. Database se user ko delete karein
-    await user.deleteOne(); // .remove() deprecated hai
-
-    // TODO: Us user se jude AdminDevice tokens ko bhi delete karna chahiye
-    // (Abhi ke liye yeh kaafi hai)
+    await user.deleteOne();
 
     res.json({ msg: "Admin account deleted successfully" });
   } catch (err) {
