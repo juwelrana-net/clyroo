@@ -177,8 +177,6 @@ router.put("/products/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// --- YEH NAYA ROUTE FILE KE END MEIN ADD KAREIN (module.exports se pehle) ---
-
 // ROUTE 8: MOCK (TEST) ORDER DELIVERY
 // Yeh route admin ke liye hai taaki woh manually order ko 'Completed' mark kar sakein
 router.get("/test-delivery/:orderId", authMiddleware, async (req, res) => {
@@ -214,6 +212,67 @@ router.get("/test-delivery/:orderId", authMiddleware, async (req, res) => {
     // Agar delivery fail ho (jaise out of stock) toh error log karein
     console.error("Manual test delivery failed:", err.message);
     res.status(500).json({ msg: "Test delivery failed", error: err.message });
+  }
+});
+
+// ROUTE 9: Get Admin Dashboard Stats
+// GET /api/admin/stats?range=30days
+router.get("/stats", authMiddleware, async (req, res) => {
+  try {
+    const { range } = req.query; // e.g., '7days', '30days', 'alltime'
+
+    // 1. Date Range ka filter banayein
+    let dateFilter = {};
+    const now = new Date();
+
+    if (range === "7days") {
+      dateFilter.createdAt = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+    } else if (range === "30days") {
+      dateFilter.createdAt = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+    } else if (range === "yesterday") {
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      yesterday.setHours(0, 0, 0, 0); // Kal subah 12 baje
+      const today = new Date(now);
+      today.setHours(0, 0, 0, 0); // Aaj subah 12 baje
+      dateFilter.createdAt = { $gte: yesterday, $lt: today };
+    }
+    // 'alltime' ke liye koi date filter nahi hoga
+
+    // 2. Total Revenue calculate karein
+    // Hum 'Completed' orders ko date filter ke saath aggregate karenge
+    const revenueStats = await Order.aggregate([
+      {
+        $match: {
+          status: "Completed",
+          ...dateFilter, // Date filter yahaan apply hoga
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$priceAtPurchase" },
+          totalSales: { $sum: 1 }, // Total sales count
+        },
+      },
+    ]);
+
+    // 3. Total Products (yeh date se filter nahi hote)
+    const totalProducts = await Product.countDocuments();
+
+    // 4. Total Stock (Unsold credentials) (yeh bhi date se filter nahi hote)
+    const totalStock = await Credential.countDocuments({ isSold: false });
+
+    // 5. Final stats object return karein
+    res.json({
+      totalRevenue: revenueStats[0]?.totalRevenue || 0,
+      totalSales: revenueStats[0]?.totalSales || 0,
+      totalProducts: totalProducts,
+      totalStock: totalStock,
+    });
+      
+  } catch (err) {
+    console.error("Stats fetch error:", err.message);
+    res.status(500).send("Server Error");
   }
 });
 
