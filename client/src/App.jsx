@@ -30,6 +30,7 @@ import { cn } from './lib/utils.js';
 import api from './lib/api.js';
 import Footer from './components/Footer.jsx';
 import { Toaster } from 'sonner';
+import { AuthProvider } from '@/context/AuthContext.jsx';
 
 // --- NAYE ADMIN IMPORTS ---
 import AdminLayout from './layouts/AdminLayout.jsx';
@@ -210,49 +211,51 @@ function App() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
       <Toaster richColors position="top-center" />
-      
-      <AppContentComponent {...contentProps} />
 
-      <main className="flex-grow">
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<HomePage />} />
-          <Route path="/product/:id" element={<ProductDetailPage />} />
-          <Route path="/order/success/:id" element={<OrderSuccessPage />} />
-          <Route path="/inquiry" element={<OrderInquiryPage />} />
-          <Route path="/how-to-buy" element={<HowToBuyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/refund-policy" element={<RefundPolicyPage />} />
-          <Route path="/order/:id/pay" element={<PaymentSelectPage />} />
-          <Route path="/order/:id/confirm" element={<ConfirmationPage />} />
-          <Route path="/order/:id/nowpayments" element={<NowPaymentsPage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password/:resetToken" element={<ResetPasswordPage />} />
+      <AuthProvider>
+        <AppContentComponent {...contentProps} />
 
-          {/* Admin Routes */}
-          <Route element={<AdminRoute />}>
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route index element={<DashboardPage />} />
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="products" element={<ProductsPage />} />
-              <Route path="stocks" element={<StocksPage />} />
-              <Route path="payments" element={<PaymentsPage />} />
-              <Route path="categories" element={<CategoriesPage />} />
-              <Route path="contacts" element={<ContactsPage />} />
-              <Route path="notifications" element={<NotificationsPage />} />
+        <main className="flex-grow">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/product/:id" element={<ProductDetailPage />} />
+            <Route path="/order/success/:id" element={<OrderSuccessPage />} />
+            <Route path="/inquiry" element={<OrderInquiryPage />} />
+            <Route path="/how-to-buy" element={<HowToBuyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/refund-policy" element={<RefundPolicyPage />} />
+            <Route path="/order/:id/pay" element={<PaymentSelectPage />} />
+            <Route path="/order/:id/confirm" element={<ConfirmationPage />} />
+            <Route path="/order/:id/nowpayments" element={<NowPaymentsPage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password/:resetToken" element={<ResetPasswordPage />} />
 
-              {/* --- YEH NAYA ROUTE ADD HUA HAI --- */}
-              <Route path="admincontrol" element={<AdminControlPage />} />
-              {/* --- NAYA ROUTE KHATAM --- */}
+            {/* Admin Routes */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<DashboardPage />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="products" element={<ProductsPage />} />
+                <Route path="stocks" element={<StocksPage />} />
+                <Route path="payments" element={<PaymentsPage />} />
+                <Route path="categories" element={<CategoriesPage />} />
+                <Route path="contacts" element={<ContactsPage />} />
+                <Route path="notifications" element={<NotificationsPage />} />
 
+                {/* --- YEH NAYA ROUTE ADD HUA HAI --- */}
+                <Route path="admincontrol" element={<AdminControlPage />} />
+                {/* --- NAYA ROUTE KHATAM --- */}
+
+              </Route>
             </Route>
-          </Route>
-        </Routes>
-      </main>
+          </Routes>
+        </main>
+        <AppFooterComponent />
+      </AuthProvider>
 
-      <AppFooterComponent />
     </div>
   );
 }

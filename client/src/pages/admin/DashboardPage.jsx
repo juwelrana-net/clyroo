@@ -3,21 +3,45 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext, useLocation } from 'react-router-dom';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
-import { Loader2 } from 'lucide-react';
+import { Loader2, DollarSign, Package, Layers, ShoppingCart } from 'lucide-react';
 
 // Components Import Karein
 import RevenueChart from '@/components/admin/RevenueChart.jsx';
 import SalesChart from '@/components/admin/SalesChart.jsx';
-import TopCategoriesTable from '@/components/admin/TopCategoriesTable.jsx'; // <--- Naya Component
-import StockPieChart from '@/components/admin/StockPieChart.jsx';       // <--- Naya Component
+import TopCategoriesTable from '@/components/admin/TopCategoriesTable.jsx';
+import StockPieChart from '@/components/admin/StockPieChart.jsx';
+import { cn } from '@/lib/utils.js';
 
-const StatCard = ({ title, value, subtext }) => (
-    <div className="bg-background p-6 rounded-lg border border-border shadow-sm">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
-        <p className="text-3xl font-bold">{value}</p>
-        {subtext && <p className="text-xs text-muted-foreground">{subtext}</p>}
+// --- UPDATED StatCard COMPONENT ---
+const StatCard = ({ title, value, subtext, icon: Icon, gradientClass }) => (
+    <div className={cn(
+        "relative p-6 rounded-xl shadow-sm border border-border/50 overflow-hidden transition-all hover:shadow-md",
+        "bg-gradient-to-br from-secondary/50 to-background", // Fallback
+        gradientClass // Custom gradient color
+    )}>
+        {/* Absolute positioned icon - Fixed for Light Mode */}
+        {Icon && (
+            <Icon
+                className="absolute -top-2 -right-2 h-16 w-16 text-primary/10 -rotate-12 transition-transform group-hover:scale-110 pointer-events-none"
+            />
+        )}
+
+        <div className="relative z-10">
+            <h3 className="text-sm font-medium text-muted-foreground tracking-wide uppercase">
+                {title}
+            </h3>
+            <p className="text-4xl font-extrabold mt-2 text-foreground tracking-tight">
+                {value}
+            </p>
+            {subtext && (
+                <p className="text-xs font-medium text-muted-foreground mt-2 bg-background/40 inline-block px-2 py-1 rounded-md backdrop-blur-sm">
+                    {subtext}
+                </p>
+            )}
+        </div>
     </div>
 );
+// --- END UPDATED StatCard COMPONENT ---
 
 const DashboardPage = () => {
     const {
@@ -59,7 +83,7 @@ const DashboardPage = () => {
     }
 
     return (
-        <div className="space-y-8"> {/* Vertical spacing badha di */}
+        <div className="space-y-8">
 
             {/* Header & Filter */}
             <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
@@ -97,21 +121,29 @@ const DashboardPage = () => {
                     title="Total Revenue"
                     value={`${dashboardStats.totalRevenue.toFixed(2)} USDT`}
                     subtext={`based on ${dashboardStats.totalSales} sales`}
+                    icon={DollarSign}
+                    gradientClass="bg-gradient-to-br from-green-500/20 via-green-500/5 to-background"
                 />
                 <StatCard
                     title="Total Products"
                     value={dashboardStats.totalProducts}
-                    subtext="Total types of products listed"
+                    subtext="Active listings"
+                    icon={Package}
+                    gradientClass="bg-gradient-to-br from-blue-500/20 via-blue-500/5 to-background"
                 />
                 <StatCard
-                    title="Total Stock (Unsold)"
+                    title="Total Stock"
                     value={dashboardStats.totalStock}
-                    subtext="Total credentials available to sell"
+                    subtext="Available credentials"
+                    icon={Layers}
+                    gradientClass="bg-gradient-to-br from-yellow-500/20 via-yellow-500/5 to-background"
                 />
                 <StatCard
                     title="Total Sales"
                     value={dashboardStats.totalSales}
-                    subtext="Total orders completed"
+                    subtext="Orders completed"
+                    icon={ShoppingCart}
+                    gradientClass="bg-gradient-to-br from-purple-500/20 via-purple-500/5 to-background"
                 />
             </div>
 
@@ -133,12 +165,9 @@ const DashboardPage = () => {
                 )}
             </div>
 
-            {/* --- NAYA SECTION: Category Table & Pie Chart --- */}
+            {/* Category Table & Pie Chart */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left: Top Selling Categories */}
                 <TopCategoriesTable data={dashboardStats.topCategories} />
-
-                {/* Right: Stock Distribution Pie Chart */}
                 <StockPieChart data={dashboardStats.stockDistribution} />
             </div>
 

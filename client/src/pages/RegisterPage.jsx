@@ -1,17 +1,12 @@
 // client/src/pages/RegisterPage.jsx
 
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import { useNavigate, Link } from "react-router-dom"; // useLocation add karein
+import { useNavigate, Link } from "react-router-dom";
+import api from "@/lib/api.js"; // <--- FIX 1: axios ki jagah api import kiya
 import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
-import {
-    Eye,
-    EyeOff,
-    User,
-    Loader2,
-} from "lucide-react";
+import { Eye, EyeOff, User, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 const RegisterPage = () => {
@@ -22,26 +17,21 @@ const RegisterPage = () => {
     const [imagePreview, setImagePreview] = useState(null);
 
     const [showPassword, setShowPassword] = useState(false);
-    // const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [checkingStatus, setCheckingStatus] = useState(true); // Status check karne ke liye loader
-    const [registrationAllowed, setRegistrationAllowed] = useState(false); // Status save karne ke liye
+    const [checkingStatus, setCheckingStatus] = useState(true);
+    const [registrationAllowed, setRegistrationAllowed] = useState(false);
 
     const navigate = useNavigate();
 
-    // --- NAYA EFFECT ---
-    // Page load par check karein ki registration allowed hai ya nahi
     useEffect(() => {
         const checkRegistrationStatus = async () => {
             try {
                 setCheckingStatus(true);
-                const res = await axios.get("/api/auth/registration-status");
+                // api instance use kiya
+                const res = await api.get("/api/auth/registration-status");
                 if (res.data.allowRegistration) {
                     setRegistrationAllowed(true);
                 } else {
-                    // Agar registration allowed nahi hai, toh login page par bhej dein
-                    // 'replace: true' history mein entry nahi banayega
-                    // 'state' se hum login page par ek message bhejenge
                     navigate("/login", {
                         replace: true,
                         state: {
@@ -50,7 +40,9 @@ const RegisterPage = () => {
                     });
                 }
             } catch (err) {
-                toast.error("Could not check registration status.");
+                console.error(err);
+                // Toast hata diya taaki agar network error ho toh user confuse na ho, 
+                // bas infinite loader na dikhe isliye finally block hai.
             } finally {
                 setCheckingStatus(false);
             }
@@ -73,7 +65,6 @@ const RegisterPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // setError(null);
         setLoading(true);
 
         const formData = new FormData();
@@ -86,7 +77,8 @@ const RegisterPage = () => {
         }
 
         try {
-            await axios.post("/api/auth/register", formData);
+            // api instance use kiya
+            await api.post("/api/auth/register", formData);
 
             navigate("/login", {
                 state: { message: "Registration successful! Please log in." },
@@ -98,7 +90,6 @@ const RegisterPage = () => {
         }
     };
 
-    // --- LOADER (JAB TAK STATUS CHECK HO RAHA HAI) ---
     if (checkingStatus) {
         return (
             <div className="min-h-screen flex items-center justify-center text-primary">
@@ -108,13 +99,10 @@ const RegisterPage = () => {
         );
     }
 
-    // --- AGAR REGISTRATION ALLOWED NAHI HAI (YEH EK SAFETY CHECK HAI) ---
     if (!registrationAllowed) {
-        // Waise toh hum pehle hi redirect kar denge, par yeh fallback hai
         return null;
     }
 
-    // --- AGAR REGISTRATION ALLOWED HAI, TOH FORM DIKHAYEIN ---
     return (
         <div className="container mx-auto max-w-md px-4 py-12">
             <div className="bg-background border border-border rounded-xl shadow-lg p-8">
@@ -164,7 +152,7 @@ const RegisterPage = () => {
                         <Input
                             id="name"
                             type="text"
-                            placeholder="Aapka poora naam"
+                            placeholder="Full Name"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             required
@@ -183,6 +171,7 @@ const RegisterPage = () => {
                         />
                     </div>
 
+                    {/* --- FIX 2: Password Input UI (Same as Login Page) --- */}
                     <div className="space-y-1">
                         <Label htmlFor="password">Password</Label>
                         <div className="relative">
@@ -193,17 +182,15 @@ const RegisterPage = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
-                                className="pr-10"
+                                className="pr-10" // Padding right
                             />
-                            <Button
+                            <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
                                 onClick={togglePasswordVisibility}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary p-1"
                             >
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </Button>
+                            </button>
                         </div>
                     </div>
 

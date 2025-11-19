@@ -1,136 +1,135 @@
 // client/src/pages/LoginPage.jsx
 
-import React, { useState, useEffect } from "react"; // useEffect add karein
-import axios from "axios";
-import { useNavigate, Link, useLocation } from "react-router-dom"; // useLocation add karein
-import { Button } from "@/components/ui/button.jsx";
-import { Input } from "@/components/ui/input.jsx";
-import { Label } from "@/components/ui/label.jsx";
-import {
-    AlertCircle,
-    Eye,
-    EyeOff,
-    Loader2,
-    ShieldAlert,
-    CheckCircle,
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from "sonner";
+import { useAuth } from '@/context/AuthContext.jsx'; // <--- AuthContext import
 
 const LoginPage = () => {
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    // const [error, setError] = useState(null);
-    const [showPassword, setShowPassword] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+    const [allowRegistration, setAllowRegistration] = useState(false); // <--- Registration status
+    const { login } = useAuth(); // <--- AuthContext se login function
+
     const navigate = useNavigate();
-    const location = useLocation();
-    // const [infoMessage, setInfoMessage] = useState(
-    //     location.state?.message || null
-    // );
+    const location = useLocation(); // <--- For reset password message
 
     useEffect(() => {
-        if (location.state?.message) {
-            // Agar koi message lekar aaya hai (jaise register page se), toh toast dikhao
-            toast.info(location.state.message);
+        // Check if registration is allowed (first admin registration)
+        const checkRegistrationStatus = async () => {
+            try {
+                const res = await axios.get('/api/auth/registration-status');
+                setAllowRegistration(res.data.allowRegistration);
+            } catch (err) {
+                console.error("Failed to fetch registration status:", err);
+                // toast.error("Failed to fetch registration status."); // No need for toast here
+            }
+        };
+        checkRegistrationStatus();
 
-            // State clear kar do taaki refresh par wapas na dikhe
+        // Show password reset success message if navigated from ResetPasswordPage
+        if (location.state?.message) {
+            toast.success(location.state.message);
+            // Clear the state so it doesn't show again on refresh
             navigate(location.pathname, { replace: true, state: {} });
         }
     }, [location, navigate]);
 
-    const togglePasswordVisibility = () => {
-        setShowPassword(!showPassword);
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // setError(null);
-        // setInfoMessage(null);
         setLoading(true);
 
         try {
-            const response = await axios.post("/api/auth/login", { email, password });
-            localStorage.setItem("adminToken", response.data.token);
-
-            toast.success("Login successful! Welcome back.");
-            navigate("/admin/dashboard");
+            const res = await axios.post('/api/auth/login', { email, password });
+            login(res.data.token); // Use AuthContext's login function
+            toast.success("Login successful!");
+            navigate('/admin/dashboard');
         } catch (err) {
-            const errorMsg = err.response?.data?.msg || "Login failed. Invalid Credentials.";
-            toast.error(errorMsg);
+            toast.error(err.response?.data?.msg || "Login failed.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="container mx-auto max-w-md px-4 py-12">
+        <div className="container mx-auto max-w-md px-4 py-20">
             <div className="bg-background border border-border rounded-xl shadow-lg p-8">
-                <h1 className="text-3xl font-bold text-center mb-6 text-primary">
+                <h1 className="text-4xl font-extrabold text-center mb-8 text-primary">
                     Admin Login
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-
+                    {/* Email Input */}
                     <div className="space-y-1">
                         <Label htmlFor="email">Email</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            placeholder="admin@example.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            required
-                        />
+                        <div className="relative">
+                            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                id="email"
+                                type="email"
+                                placeholder="admin@example.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                className="pl-10"
+                                required
+                            />
+                        </div>
                     </div>
 
-                    <div className="space-y-1">
+                    {/* Password Input with Eye Icon and Forgot Password Link */}
+                    <div className="space-y-1"> {/* This div was causing issues */}
                         <Label htmlFor="password">Password</Label>
-                        <div className="relative">
+                        <div className="relative"> {/* Keep this relative for icon positioning */}
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
                                 id="password"
                                 type={showPassword ? "text" : "password"}
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                className="pl-10 pr-10" // Add pr-10 for padding on right
                                 required
-                                className="pr-10"
                             />
-                            <Button
+                            <button
                                 type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground"
-                                onClick={togglePasswordVisibility}
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary p-1" // Added p-1 for clickable area
+                                aria-label={showPassword ? "Hide password" : "Show password"}
                             >
                                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                            </Button>
-
-                            <div className="flex justify-end mt-1">
-                                <Link
-                                    to="/forgot-password"
-                                    className="text-xs text-muted-foreground hover:text-primary font-medium"
-                                >
-                                    Forgot Password?
-                                </Link>
-                            </div>
+                            </button>
+                        </div>
+                        {/* Forgot Password Link - Now correctly aligned */}
+                        <div className="flex justify-end mt-1"> {/* Adjusted margin-top */}
+                            <Link
+                                to="/forgot-password"
+                                className="text-xs text-muted-foreground hover:text-primary font-medium"
+                            >
+                                Forgot Password?
+                            </Link>
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin mr-2" /> : null}
-                        {loading ? "Logging in..." : "Login"}
+                    <Button type="submit" className="w-full text-lg" disabled={loading}>
+                        {loading ? <Loader2 className="animate-spin mr-2" /> : "Login"}
                     </Button>
                 </form>
 
-                <p className="text-center text-sm text-muted-foreground mt-6">
-                    Don't have an account?{" "}
-                    <Link
-                        to="/register"
-                        className="text-primary hover:underline font-medium"
-                    >
-                        Register here
-                    </Link>
-                </p>
+                {allowRegistration && (
+                    <p className="text-center text-muted-foreground text-sm mt-6">
+                        Don't have an account?{" "}
+                        <Link to="/register" className="text-primary hover:underline">
+                            Register here
+                        </Link>
+                    </p>
+                )}
             </div>
         </div>
     );
