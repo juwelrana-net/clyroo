@@ -218,57 +218,144 @@ router.get("/test-delivery/:orderId", authMiddleware, async (req, res) => {
 // GET /api/admin/stats?range=30days
 router.get("/stats", authMiddleware, async (req, res) => {
   try {
-    const { range } = req.query; // e.g., '7days', '30days', 'alltime'
+    const { range } = req.query;
 
-    // 1. Date Range ka filter banayein
+    // 1. Date Range Filter
     let dateFilter = {};
     const now = new Date();
 
     if (range === "7days") {
-      dateFilter.createdAt = { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+      dateFilter.createdAt = {
+        $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000),
+      };
     } else if (range === "30days") {
-      dateFilter.createdAt = { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+      dateFilter.createdAt = {
+        $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000),
+      };
     } else if (range === "yesterday") {
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-      yesterday.setHours(0, 0, 0, 0); // Kal subah 12 baje
+      yesterday.setHours(0, 0, 0, 0);
       const today = new Date(now);
-      today.setHours(0, 0, 0, 0); // Aaj subah 12 baje
+      today.setHours(0, 0, 0, 0);
       dateFilter.createdAt = { $gte: yesterday, $lt: today };
     }
-    // 'alltime' ke liye koi date filter nahi hoga
 
-    // 2. Total Revenue calculate karein
-    // Hum 'Completed' orders ko date filter ke saath aggregate karenge
-    const revenueStats = await Order.aggregate([
-      {
-        $match: {
-          status: "Completed",
-          ...dateFilter, // Date filter yahaan apply hoga
-        },
-      },
+    // 2. Basic Stats (Revenue & Sales)
+    const revenueStatsPromise = Order.aggregate([
+      { $match: { status: "Completed", ...dateFilter } },
       {
         $group: {
           _id: null,
           totalRevenue: { $sum: "$priceAtPurchase" },
-          totalSales: { $sum: 1 }, // Total sales count
+          totalSales: { $sum: 1 },
         },
       },
     ]);
 
-    // 3. Total Products (yeh date se filter nahi hote)
-    const totalProducts = await Product.countDocuments();
+    // 3. Products & Stock Counts
+    const totalProductsPromise = Product.countDocuments();
+    const totalStockPromise = Credential.countDocuments({ isSold: false });
 
-    // 4. Total Stock (Unsold credentials) (yeh bhi date se filter nahi hote)
-    const totalStock = await Credential.countDocuments({ isSold: false });
+    // --- NAYA FEATURE 1: Top Selling Categories (Table ke liye) ---
+    // Order -> Product -> Category join karke sales count nikalo
+    const topCategoriesPromise = Order.aggregate([
+      { $match: { status: "Completed", ...dateFilter } },
+      // Product join karein
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      { $unwind: "$productInfo" },
+      // Category join karein
+      {
+        $lookup: {
+          from: "categories",
+          localField: "productInfo.category",
+          foreignField: "_id",
+          as: "categoryInfo",
+        },
+      },
+      { $unwind: "$categoryInfo" },
+      // Group by Category Name
+      {
+        $group: {
+          _id: "$categoryInfo.name",
+          sales: { $sum: 1 },
+          revenue: { $sum: "$priceAtPurchase" },
+        },
+      },
+      { $sort: { sales: -1 } }, // Sabse zyada sales pehle
+      { $limit: 5 }, // Top 5 dikhayenge
+    ]);
 
-    // 5. Final stats object return karein
+    // --- NAYA FEATURE 2: Stock Distribution (Pie Chart ke liye) ---
+    // Credential (Unsold) -> Product -> Category join karke stock count nikalo
+    const stockDistributionPromise = Credential.aggregate([
+      { $match: { isSold: false } },
+      {
+        $lookup: {
+          from: "products",
+          localField: "product",
+          foreignField: "_id",
+          as: "productInfo",
+        },
+      },
+      { $unwind: "$productInfo" },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "productInfo.category",
+          foreignField: "_id",
+          as: "categoryInfo",
+        },
+      },
+      { $unwind: "$categoryInfo" },
+      {
+        $group: {
+          _id: "$categoryInfo.name",
+          count: { $sum: 1 },
+        },
+      },
+      // Sort taaki bade hisse pehle dikhein
+      { $sort: { count: -1 } },
+    ]);
+
+    // Saare promises ek saath run karein (Fast performance)
+    const [
+      revenueStats,
+      totalProducts,
+      totalStock,
+      topCategories,
+      stockDistribution,
+    ] = await Promise.all([
+      revenueStatsPromise,
+      totalProductsPromise,
+      totalStockPromise,
+      topCategoriesPromise,
+      stockDistributionPromise,
+    ]);
+
+    // Final Response
     res.json({
       totalRevenue: revenueStats[0]?.totalRevenue || 0,
       totalSales: revenueStats[0]?.totalSales || 0,
-      totalProducts: totalProducts,
-      totalStock: totalStock,
+      totalProducts,
+      totalStock,
+      // Naye Data Fields
+      topCategories: topCategories.map((c) => ({
+        name: c._id,
+        sales: c.sales,
+        revenue: c.revenue,
+      })),
+      stockDistribution: stockDistribution.map((s) => ({
+        name: s._id,
+        value: s.count,
+      })),
     });
-      
   } catch (err) {
     console.error("Stats fetch error:", err.message);
     res.status(500).send("Server Error");
