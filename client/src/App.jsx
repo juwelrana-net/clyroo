@@ -41,6 +41,8 @@ import CategoriesPage from './pages/admin/CategoriesPage.jsx';
 import ContactsPage from './pages/admin/ContactsPage.jsx';
 import NotificationsPage from './pages/admin/NotificationsPage.jsx';
 import AdminControlPage from './pages/admin/AdminControlPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 
 const AppContentComponent = (props) => {
   const { pathname } = useLocation();
@@ -226,6 +228,8 @@ function App() {
           <Route path="/order/:id/nowpayments" element={<NowPaymentsPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password/:resetToken" element={<ResetPasswordPage />} />
 
           {/* Admin Routes */}
           <Route element={<AdminRoute />}>

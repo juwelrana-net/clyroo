@@ -1,7 +1,6 @@
 // client/src/components/admin/AdminSidebarContent.jsx
 
 import React, { useState } from 'react';
-// useOutletContext yahaan se HATA DEIN
 import { NavLink, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button.jsx';
 import {
@@ -12,9 +11,9 @@ import {
     FolderKanban,
     Headset,
     BellRing,
-    Users, // Admin Controll icon
+    Users,
     LogOut,
-    ShieldAlert, // Disabled icon
+    ShieldAlert,
 } from 'lucide-react';
 import { cn } from '@/lib/utils.js';
 import {
@@ -26,7 +25,7 @@ import {
     DialogFooter
 } from "@/components/ui/dialog.jsx";
 
-// NavLink helper (waisa hi hai, permission check ke saath)
+// AdminNavLink helper (Same as before)
 const AdminNavLink = ({ to, icon: Icon, children, disabled }) => {
     const navLinkClass = ({ isActive }) =>
         cn(
@@ -50,15 +49,10 @@ const AdminNavLink = ({ to, icon: Icon, children, disabled }) => {
     );
 };
 
-// Main Content
-// Yahaan 'adminUser' ko prop se receive karein
 const AdminSidebarContent = ({ adminUser }) => {
     const [logoutPopupOpen, setLogoutPopupOpen] = useState(false);
     const navigate = useNavigate();
-
-    // --- CODE UPDATE: Prop se data lein ---
-    const permissions = adminUser?.permissions || {}; // Safety check
-    // --- UPDATE KHATAM ---
+    const permissions = adminUser?.permissions || {};
 
     const handleLogout = () => {
         localStorage.removeItem('adminToken');
@@ -69,64 +63,32 @@ const AdminSidebarContent = ({ adminUser }) => {
         <>
             <nav className="flex h-full flex-col p-4">
                 <div className="flex-1 mt-4 space-y-2">
-                    <AdminNavLink
-                        to="/admin/dashboard"
-                        icon={LayoutDashboard}
-                    >
+                    <AdminNavLink to="/admin/dashboard" icon={LayoutDashboard}>
                         Dashboard
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/products"
-                        icon={Package}
-                        disabled={!permissions.manageProducts}
-                    >
+                    <AdminNavLink to="/admin/products" icon={Package} disabled={!permissions.manageProducts}>
                         Products
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/stocks"
-                        icon={Layers}
-                        disabled={!permissions.manageStock}
-                    >
+                    <AdminNavLink to="/admin/stocks" icon={Layers} disabled={!permissions.manageStock}>
                         Stocks
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/payments"
-                        icon={HandCoins}
-                        disabled={!permissions.managePayments}
-                    >
+                    <AdminNavLink to="/admin/payments" icon={HandCoins} disabled={!permissions.managePayments}>
                         Payments
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/categories"
-                        icon={FolderKanban}
-                        disabled={!permissions.manageCategories}
-                    >
+                    <AdminNavLink to="/admin/categories" icon={FolderKanban} disabled={!permissions.manageCategories}>
                         Category
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/contacts"
-                        icon={Headset}
-                        disabled={!permissions.manageContacts}
-                    >
+                    <AdminNavLink to="/admin/contacts" icon={Headset} disabled={!permissions.manageContacts}>
                         Contact
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/notifications"
-                        icon={BellRing}
-                        disabled={!permissions.manageNotifications}
-                    >
+                    <AdminNavLink to="/admin/notifications" icon={BellRing} disabled={!permissions.manageNotifications}>
                         Notifications
                     </AdminNavLink>
-                    <AdminNavLink
-                        to="/admin/admincontrol"
-                        icon={Users}
-                        disabled={!permissions.manageAdmins}
-                    >
-                        Admin Controll
+                    <AdminNavLink to="/admin/admincontrol" icon={Users} disabled={!permissions.manageAdmins}>
+                        Admin Control
                     </AdminNavLink>
                 </div>
 
-                {/* Logout Button (waisa hi hai) */}
                 <div className="mt-auto pt-4 border-t border-border">
                     <Button
                         variant="ghost"
@@ -139,21 +101,23 @@ const AdminSidebarContent = ({ adminUser }) => {
                 </div>
             </nav>
 
-            {/* Logout Popup (waisa hi hai) */}
+            {/* --- CREATIVE LOGOUT POPUP --- */}
             <Dialog open={logoutPopupOpen} onOpenChange={setLogoutPopupOpen}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle className="text-2xl text-center">👋 Good Bye!</DialogTitle>
-                        <DialogDescription className="text-center pt-2">
-                            Kya aap waqai logout karna chahte hain?
+                        <DialogTitle className="text-2xl text-center">👋 See You Later!</DialogTitle>
+                        <DialogDescription className="text-center pt-2 text-muted-foreground">
+                            Are you sure you want to sign out?
+                            <br />
+                            We'll keep the lights on for you until you return!
                         </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter className="sm:justify-center pt-4">
+                    <DialogFooter className="sm:justify-center pt-4 gap-2">
                         <Button variant="outline" onClick={() => setLogoutPopupOpen(false)}>
-                            Cancel
+                            Stay Here
                         </Button>
                         <Button variant="destructive" onClick={handleLogout}>
-                            Sure, I want to Logout
+                            Yes, Log Me Out
                         </Button>
                     </DialogFooter>
                 </DialogContent>
