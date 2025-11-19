@@ -88,7 +88,7 @@ const ProductCard = ({ product }) => {
 
                     {/* --- MOBILE: Description (Desktop par hidden) --- */}
                     {/* --- UPDATE: Gap badhane ke liye 'mt-2' add kiya --- */}
-                    <p className="block sm:hidden text-xs text-muted-foreground mt-2 line-clamp-2">
+                    <p className="block sm:hidden text-xs text-muted-foreground mt-2 line-clamp-2 h-[30px]">
                         {product.description || "Digital product delivery."}
                     </p>
 
