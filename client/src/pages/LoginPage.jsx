@@ -11,41 +11,32 @@ import {
     Eye,
     EyeOff,
     Loader2,
-    ShieldAlert, // Naya icon (Warning/Info ke liye)
-    CheckCircle, // Naya icon (Success ke liye)
+    ShieldAlert,
+    CheckCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const LoginPage = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState(null);
+    // const [error, setError] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
-
-    // --- NAYA CODE ---
     const location = useLocation();
-    // Yeh 'infoMessage' state mein aayega (e.g., "Registration closed")
-    // Yeh 'successMessage' state mein aayega (e.g., "Registration successful")
-    const [infoMessage, setInfoMessage] = useState(
-        location.state?.message || null
-    );
-    // --- NAYA CODE KHATAM ---
+    // const [infoMessage, setInfoMessage] = useState(
+    //     location.state?.message || null
+    // );
 
-    // --- NAYA EFFECT ---
-    // Agar user page par navigate karke aaye (location.state se),
-    // toh 5 second baad message ko clear kar dein.
     useEffect(() => {
-        if (infoMessage) {
-            const timer = setTimeout(() => {
-                setInfoMessage(null);
-                // History state ko bhi clear kar dein taaki refresh par wapas na aaye
-                navigate(location.pathname, { replace: true, state: {} });
-            }, 5000); // 5 seconds
-            return () => clearTimeout(timer);
+        if (location.state?.message) {
+            // Agar koi message lekar aaya hai (jaise register page se), toh toast dikhao
+            toast.info(location.state.message);
+
+            // State clear kar do taaki refresh par wapas na dikhe
+            navigate(location.pathname, { replace: true, state: {} });
         }
-    }, [infoMessage, navigate, location.pathname]);
-    // --- NAYA EFFECT KHATAM ---
+    }, [location, navigate]);
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
@@ -53,18 +44,19 @@ const LoginPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
-        setInfoMessage(null); // Koi bhi purana message hata dein
+        // setError(null);
+        // setInfoMessage(null);
         setLoading(true);
 
         try {
             const response = await axios.post("/api/auth/login", { email, password });
             localStorage.setItem("adminToken", response.data.token);
+
+            toast.success("Login successful! Welcome back.");
             navigate("/admin/dashboard");
         } catch (err) {
-            setError(
-                err.response?.data?.msg || "Login failed. Invalid Credentials."
-            );
+            const errorMsg = err.response?.data?.msg || "Login failed. Invalid Credentials.";
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -78,30 +70,6 @@ const LoginPage = () => {
                 </h1>
 
                 <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* --- NAYA MESSAGE BLOCK --- */}
-                    {/* Yeh block error aur info/success dono messages handle karega */}
-                    {infoMessage && (
-                        <div
-                            className={`p-3 rounded-lg flex items-center gap-3 text-sm ${infoMessage.includes("successful")
-                                    ? "bg-green-500/10 text-green-500" // Success
-                                    : "bg-yellow-500/10 text-yellow-500" // Info/Warning
-                                }`}
-                        >
-                            {infoMessage.includes("successful") ? (
-                                <CheckCircle size={16} />
-                            ) : (
-                                <ShieldAlert size={16} />
-                            )}
-                            {infoMessage}
-                        </div>
-                    )}
-
-                    {error && (
-                        <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                            <AlertCircle size={16} /> {error}
-                        </div>
-                    )}
-                    {/* --- NAYA MESSAGE BLOCK KHATAM --- */}
 
                     <div className="space-y-1">
                         <Label htmlFor="email">Email</Label>
@@ -146,12 +114,12 @@ const LoginPage = () => {
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground mt-6">
-                    Admin account nahi hai?{" "}
+                    Don't have an account?{" "}
                     <Link
                         to="/register"
                         className="text-primary hover:underline font-medium"
                     >
-                        Yahaan register karein
+                        Register here
                     </Link>
                 </p>
             </div>

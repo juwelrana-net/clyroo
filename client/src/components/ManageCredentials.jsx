@@ -1,14 +1,14 @@
 // client/src/components/ManageCredentials.jsx
 
-// --- IMPORTS UPDATE KAREIN ---
-import React, { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, forwardRef, useImperativeHandle } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
 import { Trash2, Edit, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
+import ConfirmAlert from '@/components/ConfirmAlert.jsx'; // <--- Import
 
-// Helper function (waisa hi hai)
 const formatDataToString = (data) => {
     if (!data) return "";
     const dataObj = data instanceof Map ? Object.fromEntries(data) : data;
@@ -17,17 +17,18 @@ const formatDataToString = (data) => {
         .join(' | ');
 };
 
-// --- COMPONENT KO forwardRef SE WRAP KAREIN ---
 const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) => {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [credentials, setCredentials] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
+
+    // --- Delete State ---
+    const [deleteId, setDeleteId] = useState(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
 
     const token = localStorage.getItem('adminToken');
     const authHeaders = { headers: { 'x-auth-token': token } };
 
-    // fetchCredentials (waisa hi hai)
     const fetchCredentials = async (product) => {
         if (!product) {
             setCredentials([]);
@@ -36,50 +37,50 @@ const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) 
         }
         setSelectedProduct(product);
         setLoading(true);
-        setError(null);
         try {
             const res = await axios.get(`/api/admin/products/${product._id}/credentials`, authHeaders);
             setCredentials(res.data);
         } catch (err) {
-            setError("Credentials fetch nahi ho paye.");
+            toast.error("Failed to fetch credentials.");
         } finally {
             setLoading(false);
         }
     };
 
-    // --- YEH NAYA BLOCK ADD KAREIN ---
-    // Parent component (Dashboard) ko is component ke functions expose karein
     useImperativeHandle(ref, () => ({
-        // 'refreshList' naam ka ek function banayein
         refreshList: () => {
             if (selectedProduct) {
-                // Jo internal fetchCredentials function ko call karega
                 fetchCredentials(selectedProduct);
             }
         }
     }));
-    // --- NAYA BLOCK KHATAM ---
 
-    // handleDelete (waisa hi hai)
-    const handleDelete = async (credentialId) => {
-        if (!window.confirm("Are you sure you want to delete this credential?")) {
-            return;
-        }
+    // Button click handler
+    const handleDeleteClick = (id) => {
+        setDeleteId(id);
+        setIsAlertOpen(true);
+    };
+
+    // Actual Delete Logic
+    const confirmDelete = async () => {
+        if (!deleteId) return;
         try {
-            await axios.delete(`/api/admin/credentials/${credentialId}`, authHeaders);
-            setCredentials(prev => prev.filter(c => c._id !== credentialId));
+            await axios.delete(`/api/admin/credentials/${deleteId}`, authHeaders);
+            toast.success("Credential deleted successfully.");
+            setCredentials(prev => prev.filter(c => c._id !== deleteId));
             onStockChange();
+            setIsAlertOpen(false);
         } catch (err) {
-            setError("Delete failed.");
+            toast.error("Failed to delete credential.");
+        } finally {
+            setDeleteId(null);
         }
     };
 
-    // Baaki saara JSX (return statement) bilkul waisa hi rahega
     return (
         <div className="bg-secondary/30 border border-border rounded-lg p-6 h-full">
             <h2 className="text-2xl font-bold mb-4 text-primary">Manage Stock</h2>
 
-            {/* Product Selector */}
             <div className="mb-4">
                 <Label htmlFor="product-select">Select Product to Manage</Label>
                 <Select
@@ -103,9 +104,6 @@ const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) 
                 </Select>
             </div>
 
-            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
-
-            {/* Credentials List */}
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {loading && <Loader2 className="animate-spin mx-auto" />}
 
@@ -115,12 +113,10 @@ const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) 
 
                 {!loading && credentials.map((cred) => (
                     <div key={cred._id} className="bg-background p-3 rounded-md border-border">
-
                         <p className={`text-sm font-mono truncate ${cred.isSold ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                             {formatDataToString(cred.credentialData)}
                         </p>
 
-                        {/* Buttons */}
                         <div className="flex items-center justify-between mt-2">
                             {cred.isSold && <span className="text-xs text-red-500">(Sold)</span>}
                             {!cred.isSold && <span></span>}
@@ -138,7 +134,7 @@ const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) 
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => handleDelete(cred._id)}
+                                    onClick={() => handleDeleteClick(cred._id)} // Updated handler
                                     className="text-destructive h-8 w-8"
                                 >
                                     <Trash2 size={16} />
@@ -148,8 +144,17 @@ const ManageCredentials = forwardRef(({ products, onStockChange, onEdit }, ref) 
                     </div>
                 ))}
             </div>
+
+            {/* Custom Alert */}
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Credential?"
+                description="Are you sure you want to delete this stock item? This action cannot be undone."
+            />
         </div>
     );
-}); // --- COMPONENT KO YAHAN BAND KAREIN ---
+});
 
 export default ManageCredentials;

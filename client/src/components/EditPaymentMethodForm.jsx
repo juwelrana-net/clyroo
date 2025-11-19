@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Switch } from '@/components/ui/switch.jsx';
+import { toast } from "sonner"; // <--- Import Toast
+import { Loader2 } from 'lucide-react';
 import {
     Dialog,
     DialogContent,
@@ -20,7 +22,7 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
     const [apiCode, setApiCode] = useState('');
     const [iconUrl, setIconUrl] = useState('');
     const [isEnabled, setIsEnabled] = useState(true);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
     const token = localStorage.getItem('adminToken');
 
     useEffect(() => {
@@ -36,7 +38,7 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
+        setLoading(true);
 
         try {
             await axios.put(
@@ -50,11 +52,14 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
                 { headers: { 'x-auth-token': token } }
             );
 
+            toast.success("Payment method updated successfully!");
             onMethodChange();
             onClose();
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Update failed.");
+            toast.error(err.response?.data?.msg || "Update failed.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -70,22 +75,19 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
                     <div>
                         <Label htmlFor="edit-method-name">Display Name</Label>
-                        <Input id="edit-method-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., USDT (TRC20)" required />
+                        <Input id="edit-method-name" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
                     <div>
                         <Label htmlFor="edit-method-code">NOWPayments API Code</Label>
-                        <Input id="edit-method-code" value={apiCode} onChange={(e) => setApiCode(e.target.value)} placeholder="e.g., usdterc20" required />
+                        <Input id="edit-method-code" value={apiCode} onChange={(e) => setApiCode(e.target.value)} required />
                     </div>
                     <div>
                         <Label htmlFor="edit-method-icon">Icon URL</Label>
-                        {/* --- YEH LINE AB FIX HO GAYI HAI --- */}
-                        <Input id="edit-method-icon" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="e.g., /images/coins/usdt.svg" />
+                        <Input id="edit-method-icon" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} />
                     </div>
 
                     <div className="flex items-center justify-between p-3 bg-background rounded-md border border-border">
-                        <Label htmlFor="edit-method-enabled" className="text-base">
-                            Enabled
-                        </Label>
+                        <Label htmlFor="edit-method-enabled" className="text-base">Enabled</Label>
                         <Switch
                             id="edit-method-enabled"
                             checked={isEnabled}
@@ -93,11 +95,12 @@ const EditPaymentMethodForm = ({ method, isOpen, onClose, onMethodChange }) => {
                         />
                     </div>
 
-                    {error && <p className="text-destructive text-sm mt-2">{error}</p>}
-
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                            {loading ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

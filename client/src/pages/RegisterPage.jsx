@@ -7,13 +7,12 @@ import { Button } from "@/components/ui/button.jsx";
 import { Input } from "@/components/ui/input.jsx";
 import { Label } from "@/components/ui/label.jsx";
 import {
-    AlertCircle,
     Eye,
     EyeOff,
     User,
     Loader2,
-    ShieldAlert, // Naya icon
 } from "lucide-react";
+import { toast } from "sonner";
 
 const RegisterPage = () => {
     const [name, setName] = useState("");
@@ -23,10 +22,8 @@ const RegisterPage = () => {
     const [imagePreview, setImagePreview] = useState(null);
 
     const [showPassword, setShowPassword] = useState(false);
-    const [error, setError] = useState(null);
+    // const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-
-    // --- NAYI STATE ---
     const [checkingStatus, setCheckingStatus] = useState(true); // Status check karne ke liye loader
     const [registrationAllowed, setRegistrationAllowed] = useState(false); // Status save karne ke liye
 
@@ -53,7 +50,7 @@ const RegisterPage = () => {
                     });
                 }
             } catch (err) {
-                setError("Could not check registration status. Please try again later.");
+                toast.error("Could not check registration status.");
             } finally {
                 setCheckingStatus(false);
             }
@@ -61,7 +58,6 @@ const RegisterPage = () => {
 
         checkRegistrationStatus();
     }, [navigate]);
-    // --- NAYA EFFECT KHATAM ---
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -77,7 +73,7 @@ const RegisterPage = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
+        // setError(null);
         setLoading(true);
 
         const formData = new FormData();
@@ -90,15 +86,13 @@ const RegisterPage = () => {
         }
 
         try {
-            // Register route ko call karein (yeh ab protected hai)
             await axios.post("/api/auth/register", formData);
 
-            // Register success hone par login page par bhej dein
             navigate("/login", {
                 state: { message: "Registration successful! Please log in." },
             });
         } catch (err) {
-            setError(err.response?.data?.msg || "Registration failed");
+            toast.error(err.response?.data?.msg || "Registration failed");
         } finally {
             setLoading(false);
         }
@@ -165,12 +159,6 @@ const RegisterPage = () => {
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                            <AlertCircle size={16} /> {error}
-                        </div>
-                    )}
-
                     <div className="space-y-1">
                         <Label htmlFor="name">Full Name</Label>
                         <Input
@@ -226,12 +214,12 @@ const RegisterPage = () => {
                 </form>
 
                 <p className="text-center text-sm text-muted-foreground mt-6">
-                    Pehle se account hai?{" "}
+                    Already have an account?{" "}
                     <Link
                         to="/login"
                         className="text-primary hover:underline font-medium"
                     >
-                        Yahaan login karein
+                        Login here
                     </Link>
                 </p>
             </div>

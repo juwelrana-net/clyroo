@@ -1,30 +1,25 @@
 // client/src/components/AddCredentialForm.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select.jsx';
 import { Loader2 } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const AddCredentialForm = ({ products, onStockChange }) => {
-    const [selectedProduct, setSelectedProduct] = useState(null); // Ab poora product object store karenge
+    const [selectedProduct, setSelectedProduct] = useState(null);
     const [loadingFields, setLoadingFields] = useState(false);
-
-    // Yahaan credential ka data store hoga, e.g., { "Email": "...", "Password": "..." }
     const [credentialData, setCredentialData] = useState({});
+    const [loading, setLoading] = useState(false); // Loading state
 
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
-
-    // Jab product select karein, toh uske fields load karein
     const handleProductSelect = (productId) => {
         setLoadingFields(true);
         const product = products.find(p => p._id === productId);
         setSelectedProduct(product);
 
-        // Naye fields ke liye state ko reset karein
         const initialData = {};
         if (product && product.credentialFields) {
             product.credentialFields.forEach(field => {
@@ -35,7 +30,6 @@ const AddCredentialForm = ({ products, onStockChange }) => {
         setLoadingFields(false);
     };
 
-    // Jab admin fields mein type kare
     const handleInputChange = (fieldName, value) => {
         setCredentialData(prev => ({
             ...prev,
@@ -45,37 +39,39 @@ const AddCredentialForm = ({ products, onStockChange }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
+
         if (!selectedProduct) {
-            setError("Please select a product first.");
+            toast.error("Please select a product first.");
+            setLoading(false);
             return;
         }
         const token = localStorage.getItem('adminToken');
 
         try {
-            // Naya data object API ko bhejein
             await axios.post('/api/admin/credentials',
                 {
                     productId: selectedProduct._id,
-                    credentialData: credentialData // Yeh ab ek object hai
+                    credentialData: credentialData
                 },
                 { headers: { 'x-auth-token': token } }
             );
 
-            setMessage(`1 new stock item added for ${selectedProduct.name}.`);
+            toast.success(`Stock added for ${selectedProduct.name}!`);
 
-            // Form ko reset karein
+            // Reset Form
             const initialData = {};
             selectedProduct.credentialFields.forEach(field => {
                 initialData[field] = '';
             });
             setCredentialData(initialData);
 
-            onStockChange(); // Dashboard refresh karein
+            onStockChange();
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Credential add nahi ho paya.");
+            toast.error(err.response?.data?.msg || "Failed to add stock.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -83,7 +79,6 @@ const AddCredentialForm = ({ products, onStockChange }) => {
         <div className="bg-secondary/30 border border-border rounded-lg p-6 h-full">
             <h2 className="text-2xl font-bold mb-4 text-primary">Add Stock (Credentials)</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Product Select */}
                 <div>
                     <Label htmlFor="product">Select Product</Label>
                     <Select onValueChange={handleProductSelect} value={selectedProduct?._id || ''}>
@@ -104,8 +99,6 @@ const AddCredentialForm = ({ products, onStockChange }) => {
                     </Select>
                 </div>
 
-                {/* --- YEH BLOCK POORA NAYA HAI --- */}
-                {/* Dynamic fields product ke basis par */}
                 {loadingFields && <Loader2 className="animate-spin" />}
 
                 {selectedProduct && !loadingFields && (
@@ -125,14 +118,11 @@ const AddCredentialForm = ({ products, onStockChange }) => {
                         ))}
                     </div>
                 )}
-                {/* --- NAYA BLOCK KHATAM --- */}
 
-                <Button type="submit" className="w-full" disabled={!selectedProduct}>
-                    Add 1 Stock Item
+                <Button type="submit" className="w-full" disabled={!selectedProduct || loading}>
+                    {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                    {loading ? "Adding..." : "Add 1 Stock Item"}
                 </Button>
-
-                {message && <p className="text-green-500 text-sm mt-2">{message}</p>}
-                {error && <p className="text-destructive text-sm mt-2">{error}</p>}
             </form>
         </div>
     );

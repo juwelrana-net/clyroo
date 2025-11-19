@@ -12,37 +12,29 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogCancel,
-} from '@/components/ui/alert-dialog.jsx'; // 'AlertDialogAction' import nahi kar rahe
-import { Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
+} from '@/components/ui/alert-dialog.jsx';
+import { Loader2, ShieldAlert } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const DeleteAccountDialog = ({ isOpen, onClose }) => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
     const navigate = useNavigate();
 
     const handleDelete = async () => {
         setLoading(true);
-        setError(null);
         try {
-            // API route ko call karein
             await api.delete('/api/profile/delete');
-
-            // Token hatayein (Logout)
             localStorage.removeItem('adminToken');
-
-            onClose(); // Popup band karein
-
-            // Login page par bhej dein
+            toast.success("Your account has been deleted.");
+            onClose();
             navigate('/login');
-
         } catch (err) {
-            setError(err.response?.data?.msg || "Failed to delete account. Please try again.");
+            toast.error(err.response?.data?.msg || "Failed to delete account.");
             setLoading(false);
         }
     };
 
     return (
-        // onOpenChange ko onClose se link kar dein
         <AlertDialog open={isOpen} onOpenChange={onClose}>
             <AlertDialogContent>
                 <AlertDialogHeader>
@@ -56,20 +48,11 @@ const DeleteAccountDialog = ({ isOpen, onClose }) => {
                     </AlertDialogDescription>
                 </AlertDialogHeader>
 
-                {/* Error message (agar aaye) */}
-                {error && (
-                    <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                        <AlertCircle size={16} /> {error}
-                    </div>
-                )}
-
                 <AlertDialogFooter>
-                    {/* Cancel Button */}
                     <AlertDialogCancel onClick={onClose} disabled={loading}>
                         Cancel
                     </AlertDialogCancel>
 
-                    {/* Delete Button (Custom Button) */}
                     <Button
                         variant="destructive"
                         onClick={handleDelete}

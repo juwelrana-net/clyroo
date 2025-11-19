@@ -5,55 +5,51 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const ConfirmationPage = () => {
-    const { id } = useParams(); // URL se Order ID
+    const { id } = useParams();
     const navigate = useNavigate();
 
     const [order, setOrder] = useState(null);
     const [method, setMethod] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
 
-    // Page load par, sessionStorage se order details aur coin details padhein
     useEffect(() => {
         try {
             const orderData = sessionStorage.getItem(`order_${id}_details`);
             const methodData = sessionStorage.getItem(`order_${id}_method`);
 
             if (!orderData || !methodData) {
-                setError("Order session expired or data missing. Please try again.");
+                toast.error("Session expired. Please start over.");
+                navigate('/'); // Redirect home on critical error
             } else {
                 setOrder(JSON.parse(orderData));
                 setMethod(JSON.parse(methodData));
             }
         } catch (e) {
-            setError("Failed to load order details. Please go back and try again.");
+            toast.error("Failed to load order details.");
         } finally {
             setLoading(false);
         }
-    }, [id]);
+    }, [id, navigate]);
 
     const handlePayNow = async () => {
         setIsCreatingInvoice(true);
-        setError(null);
         try {
-            // NOWPayments ko naya invoice create karne ke liye bolein
-            // Hum Order ID aur user ka chuna hua coin (apiCode) bhejenge
             const res = await axios.post('/api/payment/nowpayments/create', {
                 orderId: order._id,
                 coinApiCode: method.apiCode
             });
 
-            // NOWPayments se mile invoice data ko agle page ke liye save karein
             sessionStorage.setItem(`order_${id}_invoice`, JSON.stringify(res.data));
 
-            // Final payment page par redirect karein
+            toast.success("Invoice created! Redirecting to payment...");
             navigate(`/order/${id}/nowpayments`);
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Failed to create payment invoice. Please try again.");
+            toast.error(err.response?.data?.msg || "Failed to create payment invoice. Please try again.");
             setIsCreatingInvoice(false);
         }
     };
@@ -62,24 +58,8 @@ const ConfirmationPage = () => {
         return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /></div>;
     }
 
-    if (error) {
-        return (
-            <div className="container mx-auto max-w-md px-4 py-12 text-center">
-                <AlertTriangle size={48} className="text-destructive mx-auto mb-4" />
-                <h1 className="text-2xl font-bold mb-4">Error</h1>
-                <p className="text-muted-foreground mb-6">{error}</p>
-                <Link to="/">
-                    <Button variant="outline">Back to Home</Button>
-                </Link>
-            </div>
-        );
-    }
+    if (!order || !method) return null;
 
-    if (!order || !method) {
-        return null; // Safety check
-    }
-
-    // Unit price calculate karein
     const unitPrice = (order.priceAtPurchase / order.quantity).toFixed(2);
 
     return (
@@ -120,11 +100,7 @@ const ConfirmationPage = () => {
                     </div>
                 </div>
 
-                {error && (
-                    <div className="text-destructive bg-destructive/20 p-3 rounded-lg flex items-center gap-3 mt-4">
-                        <AlertTriangle size={20} /> {error}
-                    </div>
-                )}
+                {/* Error div removed, Toast handles it */}
 
                 <Button
                     className="w-full h-12 text-lg mt-6"

@@ -3,27 +3,40 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
-import { Label } from '@/components/ui/label.jsx';
-import { Trash2, Edit, Loader2 } from 'lucide-react'; // <-- Edit icon import karein
+import { Trash2, Edit, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
+import ConfirmAlert from '@/components/ConfirmAlert.jsx'; // <--- 1. Import Reusable Component
 
-// Naya prop 'onEdit' lein
 const ManageProducts = ({ products, onProductChange, onEdit }) => {
     const [loadingId, setLoadingId] = useState(null);
-    const [error, setError] = useState(null);
+
+    // --- 2. Delete State Logic ---
+    const [deleteProduct, setDeleteProduct] = useState(null); // Kaunsa product delete karna hai
+    const [isAlertOpen, setIsAlertOpen] = useState(false);    // Popup khula hai ya nahi
+
     const token = localStorage.getItem('adminToken');
     const authHeaders = { headers: { 'x-auth-token': token } };
 
-    const handleDelete = async (productId) => {
-        if (!window.confirm("Are you sure? This will delete the product AND all its stock.")) {
-            return;
-        }
-        setLoadingId(productId);
-        setError(null);
+    // Jab user Delete button dabaye
+    const handleDeleteClick = (product) => {
+        setDeleteProduct(product); // Product save karo
+        setIsAlertOpen(true);      // Custom popup kholo
+    };
+
+    // Jab user Popup mein "Yes, Delete" dabaye
+    const confirmDelete = async () => {
+        if (!deleteProduct) return;
+
+        setLoadingId(deleteProduct._id); // Loader button par bhi dikhega (optional)
+
         try {
-            await axios.delete(`/api/admin/products/${productId}`, authHeaders);
+            await axios.delete(`/api/admin/products/${deleteProduct._id}`, authHeaders);
+            toast.success(`Product "${deleteProduct.name}" deleted successfully.`);
             onProductChange();
+            setIsAlertOpen(false); // Popup band karo
+            setDeleteProduct(null);
         } catch (err) {
-            setError("Delete failed. Please try again.");
+            toast.error(err.response?.data?.msg || "Failed to delete product.");
         } finally {
             setLoadingId(null);
         }
@@ -32,7 +45,6 @@ const ManageProducts = ({ products, onProductChange, onEdit }) => {
     return (
         <div className="bg-secondary/30 border border-border rounded-lg p-6 h-full">
             <h2 className="text-2xl font-bold mb-4 text-primary">Manage Products</h2>
-            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {products.length === 0 && (
@@ -46,22 +58,21 @@ const ManageProducts = ({ products, onProductChange, onEdit }) => {
                             <p className="text-xs text-muted-foreground">Stock: {product.stock}</p>
                         </div>
                         <div className="flex gap-1">
-                            {/* --- NAYA EDIT BUTTON --- */}
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={() => onEdit(product)} // Parent ko batayein ki yeh product edit karna hai
+                                onClick={() => onEdit(product)}
                                 disabled={loadingId === product._id}
                                 className="h-9 w-9"
                             >
                                 <Edit size={16} />
                             </Button>
 
-                            {/* Delete Button */}
+                            {/* --- 3. Button Action Change --- */}
                             <Button
                                 variant="destructive"
                                 size="icon"
-                                onClick={() => handleDelete(product._id)}
+                                onClick={() => handleDeleteClick(product)} // Direct delete nahi, pehle popup
                                 disabled={loadingId === product._id}
                                 className="h-9 w-9"
                             >
@@ -71,6 +82,16 @@ const ManageProducts = ({ products, onProductChange, onEdit }) => {
                     </div>
                 ))}
             </div>
+
+            {/* --- 4. Custom Alert Component Render --- */}
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Product?"
+                description={`Are you sure you want to delete "${deleteProduct?.name}"? This will also delete all associated stock credentials.`}
+                loading={loadingId === deleteProduct?._id}
+            />
         </div>
     );
 };

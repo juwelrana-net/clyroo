@@ -4,22 +4,32 @@ import React, { useState } from 'react';
 import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Trash2, Edit, Loader2, MessageCircle, Send } from 'lucide-react';
+import { toast } from "sonner";
+import ConfirmAlert from '@/components/ConfirmAlert.jsx'; // <--- Import
 
 const ManageContactLinks = ({ contactLinks, onContactChange, onEdit }) => {
     const [loadingId, setLoadingId] = useState(null);
-    const [error, setError] = useState(null);
 
-    const handleDelete = async (linkId) => {
-        if (!window.confirm("Are you sure you want to delete this contact link?")) {
-            return;
-        }
-        setLoadingId(linkId);
-        setError(null);
+    // --- Delete State ---
+    const [linkToDelete, setLinkToDelete] = useState(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+
+    const handleDeleteClick = (link) => {
+        setLinkToDelete(link);
+        setIsAlertOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!linkToDelete) return;
+        setLoadingId(linkToDelete._id);
         try {
-            await api.delete(`/api/contact/admin/${linkId}`);
-            onContactChange(); // List refresh karein
+            await api.delete(`/api/contact/admin/${linkToDelete._id}`);
+            toast.success("Contact link deleted.");
+            onContactChange();
+            setIsAlertOpen(false);
+            setLinkToDelete(null);
         } catch (err) {
-            setError("Delete failed. Please try again.");
+            toast.error("Delete failed. Please try again.");
         } finally {
             setLoadingId(null);
         }
@@ -30,7 +40,6 @@ const ManageContactLinks = ({ contactLinks, onContactChange, onEdit }) => {
             <h2 className="text-2xl font-bold mb-4 text-primary">
                 Manage Contact Links
             </h2>
-            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
 
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {contactLinks.length === 0 && (
@@ -60,9 +69,7 @@ const ManageContactLinks = ({ contactLinks, onContactChange, onEdit }) => {
                             </div>
                         </div>
 
-                        {/* Buttons */}
                         <div className="flex items-center gap-1">
-                            {/* Edit Button */}
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -72,11 +79,10 @@ const ManageContactLinks = ({ contactLinks, onContactChange, onEdit }) => {
                             >
                                 <Edit size={16} />
                             </Button>
-                            {/* Delete Button */}
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDelete(link._id)}
+                                onClick={() => handleDeleteClick(link)} // Updated handler
                                 disabled={loadingId === link._id}
                                 className="text-destructive h-9 w-9"
                             >
@@ -90,6 +96,16 @@ const ManageContactLinks = ({ contactLinks, onContactChange, onEdit }) => {
                     </div>
                 ))}
             </div>
+
+            {/* Custom Alert */}
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Contact Link?"
+                description={`Are you sure you want to delete "${linkToDelete?.displayText}"?`}
+                loading={loadingId === linkToDelete?._id}
+            />
         </div>
     );
 };

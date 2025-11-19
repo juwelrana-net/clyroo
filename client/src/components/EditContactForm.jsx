@@ -5,6 +5,8 @@ import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { toast } from "sonner"; // <--- Import Toast
+import { Loader2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -25,7 +27,7 @@ const EditContactForm = ({ link, isOpen, onClose, onContactChange }) => {
     const [type, setType] = useState('whatsapp');
     const [value, setValue] = useState('');
     const [displayText, setDisplayText] = useState('');
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         if (link) {
@@ -39,7 +41,7 @@ const EditContactForm = ({ link, isOpen, onClose, onContactChange }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
+        setLoading(true);
 
         try {
             await api.put(`/api/contact/admin/${link._id}`, {
@@ -47,10 +49,14 @@ const EditContactForm = ({ link, isOpen, onClose, onContactChange }) => {
                 value,
                 displayText,
             });
+
+            toast.success("Contact link updated successfully!");
             onContactChange();
             onClose();
         } catch (err) {
-            setError(err.response?.data?.msg || "Update failed.");
+            toast.error(err.response?.data?.msg || "Update failed.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -102,12 +108,14 @@ const EditContactForm = ({ link, isOpen, onClose, onContactChange }) => {
                             required
                         />
                     </div>
-                    {error && <p className="text-destructive text-sm mt-2">{error}</p>}
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
                             Cancel
                         </Button>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                            {loading ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

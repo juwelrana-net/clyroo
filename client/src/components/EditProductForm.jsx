@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Textarea } from '@/components/ui/textarea.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 import {
     Dialog,
     DialogContent,
@@ -14,7 +15,7 @@ import {
     DialogTitle,
     DialogFooter,
     DialogDescription,
-} from "@/components/ui/dialog.jsx"; // Dialog import karein
+} from "@/components/ui/dialog.jsx";
 import {
     Select,
     SelectContent,
@@ -30,11 +31,9 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
     const [imageUrl, setImageUrl] = useState('');
     const [fields, setFields] = useState(['']);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false); // Loading state
     const token = localStorage.getItem('adminToken');
 
-    // Jab product prop badle, form ko us data se bharein
     useEffect(() => {
         if (product) {
             setName(product.name || '');
@@ -44,9 +43,9 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
             setFields(product.credentialFields.length > 0 ? product.credentialFields : ['']);
             setSelectedCategory(product.category?._id || null);
         }
-    }, [product]); // Yeh tab run hoga jab 'product' prop update hoga
+    }, [product]);
 
-    if (!product) return null; // Agar koi product select nahi hai, toh kuchh render na karein
+    if (!product) return null;
 
     const handleFieldChange = (index, event) => {
         const newFields = [...fields];
@@ -66,16 +65,18 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
+
         const validFields = fields.filter(f => f.trim().length > 0);
         if (validFields.length === 0) {
-            setError("Please add at least one credential field (e.g., 'Email').");
+            toast.error("Please add at least one credential field.");
+            setLoading(false);
             return;
         }
 
         if (!selectedCategory) {
-            setError("Please select a category.");
+            toast.error("Please select a category.");
+            setLoading(false);
             return;
         }
 
@@ -87,16 +88,19 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
                     description,
                     price: Number(price),
                     imageUrl,
-                    credentialFields: fields.filter(f => f.trim().length > 0),
+                    credentialFields: validFields,
                     categoryId: selectedCategory,
                 },
                 { headers: { 'x-auth-token': token } }
             );
-            setMessage(`Product "${name}" updated!`);
-            onProductChange(); // Dashboard refresh karein
-            onClose(); // Popup band karein
+
+            toast.success(`Product "${name}" updated successfully!`);
+            onProductChange();
+            onClose();
         } catch (err) {
-            setError(err.response?.data?.msg || "Product update nahi ho paya.");
+            toast.error(err.response?.data?.msg || "Failed to update product.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -116,7 +120,7 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
                     </div>
                     <div>
                         <Label htmlFor="edit-category">Category</Label>
-                        <Select onValueChange={setSelectedCategory} value={selectedCategory}>
+                        <Select onValueChange={setSelectedCategory} value={selectedCategory || ""}>
                             <SelectTrigger id="edit-category">
                                 <SelectValue placeholder="Select a category..." />
                             </SelectTrigger>
@@ -149,7 +153,6 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
                     </div>
                     <div>
                         <Label>Credential Fields</Label>
-                        <p className="text-xs text-muted-foreground mb-2">Define fields this product needs (e.g., "Email", "Password").</p>
                         <div className="space-y-2">
                             {fields.map((field, index) => (
                                 <div key={index} className="flex items-center gap-2">
@@ -167,11 +170,13 @@ const EditProductForm = ({ product, isOpen, onClose, onProductChange, categories
                             Add Field
                         </Button>
                     </div>
-                    {message && <p className="text-green-500 text-sm mt-2">{message}</p>}
-                    {error && <p className="text-destructive text-sm mt-2">{error}</p>}
+
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                            {loading ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

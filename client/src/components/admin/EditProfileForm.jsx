@@ -5,7 +5,8 @@ import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { User, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Loader2, Eye, EyeOff } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 import {
     Dialog,
     DialogContent,
@@ -16,25 +17,13 @@ import {
 } from '@/components/ui/dialog.jsx';
 
 const EditProfileForm = ({ isOpen, onClose, onProfileUpdate, currentUser }) => {
-    // Form state ko current user data se bharein
     const [name, setName] = useState(currentUser.name || '');
     const [email, setEmail] = useState(currentUser.email || '');
-    const [password, setPassword] = useState(''); // Password hamesha khaali rakhein
+    const [password, setPassword] = useState('');
     const [profileImage, setProfileImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(currentUser.profileImageUrl || null);
-
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-
-    // Jab currentUser badle (e.g., refresh ke baad), toh form update ho
-    // useEffect(() => {
-    //     if (currentUser) {
-    //         setName(currentUser.name);
-    //         setEmail(currentUser.email);
-    //         setImagePreview(currentUser.profileImageUrl);
-    //     }
-    // }, [currentUser]);
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];
@@ -46,28 +35,25 @@ const EditProfileForm = ({ isOpen, onClose, onProfileUpdate, currentUser }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
         setLoading(true);
 
         const formData = new FormData();
         formData.append('name', name);
         formData.append('email', email);
         if (password) {
-            formData.append('password', password); // Sirf tab bhejein agar naya password hai
+            formData.append('password', password);
         }
         if (profileImage) {
             formData.append('profileImage', profileImage);
         }
 
         try {
-            // Naya PUT route call karein
             await api.put('/api/profile/update', formData);
-
-            onProfileUpdate(); // Layout ko batayein ki data refresh karna hai
-            onClose(); // Popup band karein
-
+            toast.success("Profile updated successfully!");
+            onProfileUpdate();
+            onClose();
         } catch (err) {
-            setError(err.response?.data?.msg || "Update failed.");
+            toast.error(err.response?.data?.msg || "Update failed.");
         } finally {
             setLoading(false);
         }
@@ -84,8 +70,6 @@ const EditProfileForm = ({ isOpen, onClose, onProfileUpdate, currentUser }) => {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-
-                    {/* Image Upload */}
                     <div className="flex flex-col items-center space-y-2">
                         <div className="relative">
                             <div className="w-24 h-24 rounded-full bg-secondary border border-border flex items-center justify-center overflow-hidden">
@@ -108,25 +92,16 @@ const EditProfileForm = ({ isOpen, onClose, onProfileUpdate, currentUser }) => {
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                            <AlertCircle size={16} /> {error}
-                        </div>
-                    )}
-
-                    {/* Name */}
                     <div>
                         <Label htmlFor="edit-name">Full Name</Label>
                         <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} required />
                     </div>
 
-                    {/* Email */}
                     <div>
                         <Label htmlFor="edit-email">Email</Label>
                         <Input id="edit-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     </div>
 
-                    {/* Password */}
                     <div>
                         <Label htmlFor="edit-password">New Password (Optional)</Label>
                         <div className="relative">

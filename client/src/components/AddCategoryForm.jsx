@@ -5,23 +5,27 @@ import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { toast } from "sonner"; // <--- Import Toast
+import { Loader2 } from 'lucide-react';
 
 const AddCategoryForm = ({ onCategoryChange }) => {
     const [name, setName] = useState('');
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
         try {
             await api.post('/api/categories/admin', { name });
-            setMessage(`Category "${name}" added!`);
+
+            toast.success(`Category "${name}" added successfully!`);
+
             setName('');
-            onCategoryChange(); // Dashboard ko refresh karein
+            onCategoryChange();
         } catch (err) {
-            setError(err.response?.data?.msg || "Failed to add category.");
+            toast.error(err.response?.data?.msg || "Failed to add category.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -39,13 +43,10 @@ const AddCategoryForm = ({ onCategoryChange }) => {
                         required
                     />
                 </div>
-                <Button type="submit" className="w-full">
-                    Add Category
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                    {loading ? "Adding..." : "Add Category"}
                 </Button>
-                {message && (
-                    <p className="text-green-500 text-sm mt-2">{message}</p>
-                )}
-                {error && <p className="text-destructive text-sm mt-2">{error}</p>}
             </form>
         </div>
     );

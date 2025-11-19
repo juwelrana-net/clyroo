@@ -4,14 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
-import { Loader2, ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const PaymentSelectPage = () => {
-    const { id } = useParams(); // Yeh Order ID hai
+    const { id } = useParams();
     const navigate = useNavigate();
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    // const [error, setError] = useState(null); // <--- HATA DIYA (Toast use hoga)
 
     const [paymentMethods, setPaymentMethods] = useState([]);
     const [loadingMethods, setLoadingMethods] = useState(true);
@@ -32,7 +33,8 @@ const PaymentSelectPage = () => {
                 setPaymentMethods(settingsRes.data);
 
             } catch (err) {
-                setError(err.response?.data?.msg || "Order fetch nahi ho paya.");
+                // Page load error (Critical)
+                toast.error(err.response?.data?.msg || "Failed to load order details.");
             } finally {
                 setLoading(false);
                 setLoadingMethods(false);
@@ -43,7 +45,7 @@ const PaymentSelectPage = () => {
 
     const handleSubmitOrder = () => {
         if (!selectedMethod) {
-            setError("Please select a payment method first.");
+            toast.error("Please select a payment method first.");
             return;
         }
 
@@ -52,11 +54,9 @@ const PaymentSelectPage = () => {
         try {
             sessionStorage.setItem(`order_${id}_details`, JSON.stringify(order));
             sessionStorage.setItem(`order_${id}_method`, JSON.stringify(selectedMethod));
-
             navigate(`/order/${id}/confirm`);
-
         } catch (e) {
-            setError("Could not proceed. Please try again.");
+            toast.error("Could not proceed. Storage error.");
             setIsSubmitting(false);
         }
     };
@@ -65,21 +65,12 @@ const PaymentSelectPage = () => {
         return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /> Loading Order...</div>;
     }
 
-    if (error) {
-        return <div className="container mx-auto max-w-md px-4 py-12 text-center text-destructive">{error}</div>;
-    }
-
-    // --- YEH ZAROORI HAI ---
-    // Agar order load nahi hua, toh link na dikhayein
     if (!order || !order.product) {
-        return <div className="min-h-screen flex items-center justify-center text-primary"><Loader2 className="animate-spin mr-2" size={24} /> Loading Order Details...</div>;
+        return <div className="min-h-screen flex items-center justify-center text-destructive">Order not found or invalid.</div>;
     }
 
     return (
         <div className="container mx-auto max-w-lg px-4 py-12">
-
-            {/* --- YEH LINK AB FIX HO GAYA HAI --- */}
-            {/* Hum ab 'id' (Order ID) ki jagah 'order.product._id' (Product ID) bhej rahe hain */}
             <Link to={`/product/${order.product._id}`} className="inline-flex items-center text-sm text-muted-foreground hover:text-primary mb-4">
                 <ArrowLeft size={16} className="mr-1" />
                 Back to product
@@ -100,7 +91,6 @@ const PaymentSelectPage = () => {
                     </div>
                 </div>
 
-                {/* Coin Selection */}
                 <h1 className="text-2xl font-bold text-center text-primary mb-6">Choose Payment Coin</h1>
 
                 <div className="space-y-4">
@@ -128,13 +118,8 @@ const PaymentSelectPage = () => {
                         ))}
                     </div>
 
-                    {error && (
-                        <div className="text-destructive bg-destructive/20 p-3 rounded-lg flex items-center gap-3">
-                            <AlertTriangle size={20} /> {error}
-                        </div>
-                    )}
+                    {/* Error UI removed, Toast handles it */}
 
-                    {/* Submit Button */}
                     <Button
                         className="w-full h-12 text-lg mt-4 rounded-lg"
                         onClick={handleSubmitOrder}

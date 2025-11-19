@@ -6,13 +6,13 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Loader2, AlertCircle, ArrowLeft, Wallet } from 'lucide-react';
 import ClipboardCopy from '@/components/ClipboardCopy.jsx';
+import { toast } from "sonner"; // <--- Import Toast
 
-// --- Naya Timer component ---
+// Timer Component (Same as before)
 const CountdownTimer = ({ expiryDate }) => {
     const calculateTimeLeft = () => {
         const difference = new Date(expiryDate) - new Date();
         let timeLeft = {};
-
         if (difference > 0) {
             timeLeft = {
                 hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
@@ -40,76 +40,71 @@ const CountdownTimer = ({ expiryDate }) => {
         </span>
     );
 };
-// --- Timer component khatam ---
-
 
 const NowPaymentsPage = () => {
-    const { id } = useParams(); // Order ID
+    const { id } = useParams();
     const navigate = useNavigate();
-    const [invoice, setInvoice] = useState(null); // NOWPayments se mila data
+    const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    // Effect 1: SessionStorage se invoice data load karein
     useEffect(() => {
         try {
             const invoiceData = sessionStorage.getItem(`order_${id}_invoice`);
             if (!invoiceData) {
-                setError("Payment session expired or data missing. Please try again.");
+                setError("Payment session expired. Please try again.");
             } else {
                 setInvoice(JSON.parse(invoiceData));
             }
         } catch (e) {
-            setError("Failed to load payment details. Please go back and try again.");
+            setError("Failed to load payment details.");
         } finally {
             setLoading(false);
         }
     }, [id]);
 
-    // Effect 2: Order status ko poll (check) karein
     useEffect(() => {
         if (!invoice) return;
 
         const interval = setInterval(async () => {
             try {
-                // Hum /api/orders/status route ka istemal karenge
                 const res = await axios.get(`/api/orders/status/${id}`);
                 const newStatus = res.data.status;
 
-                // 1. Agar payment poora ho gaya
                 if (newStatus === 'Completed') {
                     clearInterval(interval);
+                    // Clean storage
                     sessionStorage.removeItem(`order_${id}_details`);
                     sessionStorage.removeItem(`order_${id}_method`);
                     sessionStorage.removeItem(`order_${id}_invoice`);
-                    navigate(`/order/success/${id}`); // Success page par jao
+
+                    // Success Toast
+                    toast.success("Payment Received! Delivering product...");
+
+                    navigate(`/order/success/${id}`);
                 }
 
-                // 2. Agar payment fail ho gaya ya aadha hua
                 if (newStatus === 'Partially_paid' || newStatus === 'Failed' || newStatus === 'Expired') {
-                    clearInterval(interval); // Polling band karo
-
+                    clearInterval(interval);
                     if (newStatus === 'Partially_paid') {
-                        setError("Payment was partially paid. The seller has been notified. Please contact support.");
-                    } else if (newStatus === 'Expired') {
-                        setError("Payment session expired. Please go back and try again.");
+                        toast.warning("Payment partially received. Please contact support.");
+                        setError("Payment was partially paid.");
                     } else {
-                        setError("Payment failed. Please go back and try again.");
+                        toast.error(`Payment ${newStatus}. Please try again.`);
+                        setError(`Payment ${newStatus}.`);
                     }
                 }
 
-                // Agar status abhi bhi "Awaiting-Payment" hai, toh polling chalti rahegi...
-
             } catch (err) {
-                // Agar order hi delete ho gaya (ya koi aur error)
                 clearInterval(interval);
                 console.error("Polling error:", err);
-                setError("An error occurred while checking status. Please refresh.");
+                // Polling errors ko usually ignore karte hain taaki user disturb na ho,
+                // bas console log karte hain unless fatal ho.
             }
-        }, 5000); // Har 5 second mein check karein
+        }, 5000);
 
         return () => clearInterval(interval);
-    }, [invoice, id, navigate]); // 'navigate' ko dependency mein add kiya
+    }, [invoice, id, navigate]);
 
 
     if (loading) {
@@ -120,16 +115,16 @@ const NowPaymentsPage = () => {
         return (
             <div className="container mx-auto max-w-md px-4 py-12 text-center">
                 <AlertCircle size={48} className="text-destructive mx-auto mb-4" />
-                <h1 className="text-2xl font-bold mb-4">Error</h1>
+                <h1 className="text-2xl font-bold mb-4">Payment Issue</h1>
                 <p className="text-muted-foreground mb-6">{error}</p>
                 <Link to={`/order/${id}/pay`}>
-                    <Button variant="outline">Go Back</Button>
+                    <Button variant="outline">Try Again</Button>
                 </Link>
             </div>
         );
     }
 
-    if (!invoice) return null; // Safety check
+    if (!invoice) return null;
 
     return (
         <div className="container mx-auto max-w-lg px-4 py-12">
@@ -182,7 +177,6 @@ const NowPaymentsPage = () => {
                         </div>
                     </div>
 
-                    {/* Order No & Expiration */}
                     <div className="w-full text-xs text-muted-foreground border-t border-border/50 pt-4 space-y-1">
                         <div className="flex justify-between">
                             <span>Order No:</span>

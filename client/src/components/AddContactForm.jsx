@@ -1,10 +1,12 @@
 // client/src/components/AddContactForm.jsx
 
 import React, { useState } from 'react';
-import api from '@/lib/api.js'; // Humara custom axios instance
+import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { toast } from "sonner"; // <--- Import Toast
+import { Loader2 } from 'lucide-react';
 import {
     Select,
     SelectContent,
@@ -17,13 +19,11 @@ const AddContactForm = ({ onContactChange }) => {
     const [type, setType] = useState('whatsapp');
     const [value, setValue] = useState('');
     const [displayText, setDisplayText] = useState('');
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
 
         try {
             await api.post('/api/contact/admin', {
@@ -31,13 +31,16 @@ const AddContactForm = ({ onContactChange }) => {
                 value,
                 displayText,
             });
-            setMessage(`Contact link "${displayText}" added!`);
-            // Form reset karein
+
+            toast.success(`Contact link "${displayText}" added!`);
+
             setValue('');
             setDisplayText('');
-            onContactChange(); // Dashboard ko refresh karein
+            onContactChange();
         } catch (err) {
-            setError(err.response?.data?.msg || "Link add nahi ho paya.");
+            toast.error(err.response?.data?.msg || "Failed to add contact link.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -82,14 +85,10 @@ const AddContactForm = ({ onContactChange }) => {
                     />
                 </div>
 
-                <Button type="submit" className="w-full">
-                    Add Link
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                    {loading ? "Adding..." : "Add Link"}
                 </Button>
-
-                {message && (
-                    <p className="text-green-500 text-sm mt-2">{message}</p>
-                )}
-                {error && <p className="text-destructive text-sm mt-2">{error}</p>}
             </form>
         </div>
     );

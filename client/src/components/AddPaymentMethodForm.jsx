@@ -5,20 +5,19 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { toast } from "sonner"; // <--- Import Toast
+import { Loader2 } from 'lucide-react';
 
-// Yeh component naye coins (payment methods) add karega
 const AddPaymentMethodForm = ({ onMethodChange }) => {
     const [name, setName] = useState('');
     const [apiCode, setApiCode] = useState('');
     const [iconUrl, setIconUrl] = useState('');
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false);
     const token = localStorage.getItem('adminToken');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
 
         try {
             await axios.post('/api/payment-methods/admin',
@@ -29,14 +28,19 @@ const AddPaymentMethodForm = ({ onMethodChange }) => {
                 },
                 { headers: { 'x-auth-token': token } }
             );
-            setMessage(`Payment method "${name}" added!`);
+
+            toast.success(`Payment method "${name}" added successfully!`);
+
+            // Reset Form
             setName('');
             setApiCode('');
             setIconUrl('');
-            onMethodChange(); // Dashboard ko refresh karein
+            onMethodChange();
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Method add nahi ho paya.");
+            toast.error(err.response?.data?.msg || "Failed to add payment method.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -57,10 +61,10 @@ const AddPaymentMethodForm = ({ onMethodChange }) => {
                     <Input id="method-icon" value={iconUrl} onChange={(e) => setIconUrl(e.target.value)} placeholder="e.g., /images/coins/usdt.svg" />
                 </div>
 
-                <Button type="submit" className="w-full">Add Method</Button>
-
-                {message && <p className="text-green-500 text-sm mt-2">{message}</p>}
-                {error && <p className="text-destructive text-sm mt-2">{error}</p>}
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                    {loading ? "Adding..." : "Add Method"}
+                </Button>
             </form>
         </div>
     );

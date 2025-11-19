@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
+import { toast } from "sonner"; // <--- Import Toast
 import {
     Dialog,
     DialogContent,
@@ -13,24 +14,21 @@ import {
     DialogFooter,
     DialogDescription,
 } from "@/components/ui/dialog.jsx";
+import { Loader2 } from 'lucide-react'; // Loader icon
 
 const EditCredentialForm = ({ credential, isOpen, onClose, onCredentialChange }) => {
-    // Ab 'editText' ki jagah 'editData' (object) hoga
     const [editData, setEditData] = useState({});
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false); // Loading state
     const token = localStorage.getItem('adminToken');
 
-    // Jab 'credential' prop badle, form ko us data se bharein
     useEffect(() => {
         if (credential && credential.credentialData) {
-            // credential.credentialData pehle se hi ek object hai
-            setEditData(credential.credentialData); // <-- YEH LINE SAHI HAI
+            setEditData(credential.credentialData);
         }
-    }, [credential]); // Yeh tab run hoga jab 'credential' prop update hoga
+    }, [credential]);
 
-    if (!credential) return null; // Agar koi credential select nahi hai
+    if (!credential) return null;
 
-    // Edit form mein type karne par
     const handleEditChange = (key, value) => {
         setEditData(prev => ({
             ...prev,
@@ -38,23 +36,25 @@ const EditCredentialForm = ({ credential, isOpen, onClose, onCredentialChange })
         }));
     };
 
-    // Save button click handler
     const handleSave = async (e) => {
         e.preventDefault();
-        setError(null);
+        setLoading(true);
 
         try {
             await axios.put(
                 `/api/admin/credentials/${credential._id}`,
-                { credentialData: editData }, // Poora object bhejein
+                { credentialData: editData },
                 { headers: { 'x-auth-token': token } }
             );
 
-            onCredentialChange(); // Parent ko batayein ki data badal gaya hai
-            onClose(); // Popup band karein
+            toast.success("Credential updated successfully!");
+            onCredentialChange();
+            onClose();
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Update failed.");
+            toast.error(err.response?.data?.msg || "Update failed.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -69,7 +69,6 @@ const EditCredentialForm = ({ credential, isOpen, onClose, onCredentialChange })
                 </DialogHeader>
                 <form onSubmit={handleSave} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
 
-                    {/* Dynamic Fields */}
                     {Object.keys(editData).map((key) => (
                         <div key={key}>
                             <Label htmlFor={`edit-${key}`} className="text-muted-foreground">{key}</Label>
@@ -81,11 +80,12 @@ const EditCredentialForm = ({ credential, isOpen, onClose, onCredentialChange })
                         </div>
                     ))}
 
-                    {error && <p className="text-destructive text-sm mt-2">{error}</p>}
-
                     <DialogFooter>
-                        <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
-                        <Button type="submit">Save Changes</Button>
+                        <Button type="button" variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+                        <Button type="submit" disabled={loading}>
+                            {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                            {loading ? "Saving..." : "Save Changes"}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

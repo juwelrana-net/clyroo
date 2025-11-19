@@ -29,6 +29,7 @@ import {
 import { cn } from './lib/utils.js';
 import api from './lib/api.js';
 import Footer from './components/Footer.jsx';
+import { Toaster } from 'sonner';
 
 // --- NAYE ADMIN IMPORTS ---
 import AdminLayout from './layouts/AdminLayout.jsx';
@@ -39,13 +40,7 @@ import PaymentsPage from './pages/admin/PaymentsPage.jsx';
 import CategoriesPage from './pages/admin/CategoriesPage.jsx';
 import ContactsPage from './pages/admin/ContactsPage.jsx';
 import NotificationsPage from './pages/admin/NotificationsPage.jsx';
-
-// --- YEH NAYA IMPORT ADD HUA HAI ---
 import AdminControlPage from './pages/admin/AdminControlPage.jsx';
-// --- NAYA IMPORT KHATAM ---
-
-
-// ... (AppContentComponent, AppFooterComponent, aur App component ka logic waise hi rahega) ...
 
 const AppContentComponent = (props) => {
   const { pathname } = useLocation();
@@ -212,6 +207,8 @@ function App() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
 
+      <Toaster richColors position="top-center" />
+      
       <AppContentComponent {...contentProps} />
 
       <main className="flex-grow">

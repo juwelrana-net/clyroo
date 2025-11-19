@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Switch } from '@/components/ui/switch.jsx';
-import { User, Loader2, AlertCircle, Eye, EyeOff, Edit } from 'lucide-react';
+import { User, Loader2, Eye, EyeOff, Edit } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 import {
     Dialog,
     DialogContent,
@@ -16,7 +17,6 @@ import {
     DialogDescription,
 } from '@/components/ui/dialog.jsx';
 
-// Saare permissions ki list
 const allPermissionsList = [
     { id: 'manageProducts', label: 'Manage Products' },
     { id: 'manageStock', label: 'Manage Stocks' },
@@ -28,34 +28,26 @@ const allPermissionsList = [
 ];
 
 const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
-    // Mode check karein
     const isEditMode = !!editingAdmin;
-
-    // Form State
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [profileImage, setProfileImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(null);
     const [permissions, setPermissions] = useState(
-        // Default mein saare false
         allPermissionsList.reduce((acc, perm) => {
             acc[perm.id] = false;
             return acc;
         }, {})
     );
-
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Agar edit mode mein hain, toh form ko data se bharein
     useEffect(() => {
         if (isEditMode) {
             setName(editingAdmin.name || '');
             setEmail(editingAdmin.email || '');
             setImagePreview(editingAdmin.profileImageUrl || null);
-            // Permissions set karein
             const currentPerms = { ...permissions };
             for (const key in editingAdmin.permissions) {
                 if (key in currentPerms) {
@@ -75,7 +67,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
         }
     };
 
-    // Permission toggle handle karein
     const handlePermissionChange = (permId, checked) => {
         setPermissions((prev) => ({
             ...prev,
@@ -85,7 +76,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(null);
         setLoading(true);
 
         const formData = new FormData();
@@ -98,22 +88,20 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
         if (profileImage) {
             formData.append('profileImage', profileImage);
         }
-        // Permissions ko JSON string bana kar bhejein
         formData.append('permissions', JSON.stringify(permissions));
 
         try {
             if (isEditMode) {
-                // Update
                 await api.put(`/api/admin-control/${editingAdmin._id}`, formData);
+                toast.success(`Admin "${name}" updated successfully!`);
             } else {
-                // Create
                 await api.post('/api/admin-control', formData);
+                toast.success(`Admin "${name}" created successfully!`);
             }
-            onAdminChange(); // List refresh karein
-            onClose(); // Popup band karein
-
+            onAdminChange();
+            onClose();
         } catch (err) {
-            setError(err.response?.data?.msg || "Operation failed.");
+            toast.error(err.response?.data?.msg || "Operation failed.");
         } finally {
             setLoading(false);
         }
@@ -134,7 +122,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
                 </DialogHeader>
 
                 <form onSubmit={handleSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-4">
-                    {/* Image Upload */}
                     <div className="flex flex-col items-center space-y-2">
                         <div className="relative">
                             <div className="w-20 h-20 rounded-full bg-secondary border border-border flex items-center justify-center overflow-hidden">
@@ -157,12 +144,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
                         </div>
                     </div>
 
-                    {error && (
-                        <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                            <AlertCircle size={16} /> {error}
-                        </div>
-                    )}
-
                     <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-1">
                             <Label htmlFor="admin-name">Full Name</Label>
@@ -176,7 +157,7 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
 
                     <div className="space-y-1">
                         <Label htmlFor="admin-password">
-                            Password {isEditMode ? '(Optional: Leave blank to keep unchanged)' : ''}
+                            Password {isEditMode ? '(Optional)' : ''}
                         </Label>
                         <div className="relative">
                             <Input
@@ -185,7 +166,7 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                required={!isEditMode} // Naya admin banate waqt required
+                                required={!isEditMode}
                                 className="pr-10"
                             />
                             <Button
@@ -200,7 +181,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
                         </div>
                     </div>
 
-                    {/* --- Permissions --- */}
                     <div className="space-y-2 pt-2">
                         <Label className="text-base font-semibold">Permissions</Label>
                         <div className="grid grid-cols-2 gap-x-4 gap-y-3 rounded-md border border-border p-4">
@@ -218,7 +198,6 @@ const AdminForm = ({ isOpen, onClose, onAdminChange, editingAdmin }) => {
                             ))}
                         </div>
                     </div>
-
 
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onClose} disabled={loading}>

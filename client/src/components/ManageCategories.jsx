@@ -4,26 +4,33 @@ import React, { useState } from 'react';
 import api from '@/lib/api.js';
 import { Button } from '@/components/ui/button.jsx';
 import { Trash2, Edit, Loader2 } from 'lucide-react';
+import { toast } from "sonner";
+import ConfirmAlert from '@/components/ConfirmAlert.jsx'; // <--- Import
 
 const ManageCategories = ({ categories, onCategoryChange, onEdit }) => {
     const [loadingId, setLoadingId] = useState(null);
-    const [error, setError] = useState(null);
 
-    const handleDelete = async (category) => {
-        if (
-            !window.confirm(
-                `Are you sure you want to delete "${category.name}"?`
-            )
-        ) {
-            return;
-        }
-        setLoadingId(category._id);
-        setError(null);
+    // --- Delete State ---
+    const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+
+    const handleDeleteClick = (category) => {
+        setCategoryToDelete(category);
+        setIsAlertOpen(true);
+    };
+
+    const confirmDelete = async () => {
+        if (!categoryToDelete) return;
+        setLoadingId(categoryToDelete._id);
+
         try {
-            await api.delete(`/api/categories/admin/${category._id}`);
+            await api.delete(`/api/categories/admin/${categoryToDelete._id}`);
+            toast.success("Category deleted successfully.");
             onCategoryChange();
+            setIsAlertOpen(false);
+            setCategoryToDelete(null);
         } catch (err) {
-            setError(err.response?.data?.msg || "Delete failed.");
+            toast.error(err.response?.data?.msg || "Delete failed.");
         } finally {
             setLoadingId(null);
         }
@@ -34,7 +41,6 @@ const ManageCategories = ({ categories, onCategoryChange, onEdit }) => {
             <h2 className="text-2xl font-bold mb-4 text-primary">
                 Manage Categories
             </h2>
-            {error && <p className="text-destructive text-sm mb-4">{error}</p>}
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
                 {categories.length === 0 && (
                     <p className="text-muted-foreground text-sm">
@@ -60,7 +66,7 @@ const ManageCategories = ({ categories, onCategoryChange, onEdit }) => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => handleDelete(cat)}
+                                onClick={() => handleDeleteClick(cat)} // Updated handler
                                 disabled={loadingId === cat._id}
                                 className="text-destructive h-9 w-9"
                             >
@@ -74,6 +80,16 @@ const ManageCategories = ({ categories, onCategoryChange, onEdit }) => {
                     </div>
                 ))}
             </div>
+
+            {/* Custom Alert */}
+            <ConfirmAlert
+                isOpen={isAlertOpen}
+                onClose={() => setIsAlertOpen(false)}
+                onConfirm={confirmDelete}
+                title="Delete Category?"
+                description={`Are you sure you want to delete "${categoryToDelete?.name}"? This cannot be undone.`}
+                loading={loadingId === categoryToDelete?._id}
+            />
         </div>
     );
 };

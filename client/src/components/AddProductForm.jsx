@@ -6,7 +6,8 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Textarea } from '@/components/ui/textarea.jsx';
 import { Label } from '@/components/ui/label.jsx';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Loader2 } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 import {
     Select,
     SelectContent,
@@ -15,7 +16,6 @@ import {
     SelectValue,
 } from '@/components/ui/select.jsx';
 
-// Prop ka naam yahaan badla gaya hai
 const AddProductForm = ({ onProductChange, categories = [] }) => {
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
@@ -23,8 +23,7 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
     const [imageUrl, setImageUrl] = useState('');
     const [fields, setFields] = useState(['']);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [message, setMessage] = useState(null);
-    const [error, setError] = useState(null);
+    const [loading, setLoading] = useState(false); // Loading state add kiya
 
     const handleFieldChange = (index, event) => {
         const newFields = [...fields];
@@ -44,18 +43,19 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setMessage(null);
-        setError(null);
+        setLoading(true);
         const token = localStorage.getItem('adminToken');
 
         // Validation
         if (!selectedCategory) {
-            setError("Please select a category.");
+            toast.error("Please select a category.");
+            setLoading(false);
             return;
         }
         const validFields = fields.filter(f => f.trim().length > 0);
         if (validFields.length === 0) {
-            setError("Please add at least one credential field (e.g., 'Email').");
+            toast.error("Please add at least one credential field (e.g., 'Email').");
+            setLoading(false);
             return;
         }
 
@@ -71,7 +71,10 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
                 },
                 { headers: { 'x-auth-token': token } }
             );
-            setMessage(`Product "${name}" added!`);
+
+            toast.success(`Product "${name}" added successfully!`);
+
+            // Reset Form
             setName('');
             setDescription('');
             setPrice('');
@@ -81,7 +84,9 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
             onProductChange();
 
         } catch (err) {
-            setError(err.response?.data?.msg || "Product add nahi ho paya.");
+            toast.error(err.response?.data?.msg || "Failed to add product.");
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -96,7 +101,7 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
 
                 <div>
                     <Label htmlFor="category">Category</Label>
-                    <Select onValueChange={setSelectedCategory} value={selectedCategory}>
+                    <Select onValueChange={setSelectedCategory} value={selectedCategory || ""}>
                         <SelectTrigger id="category">
                             <SelectValue placeholder="Select a category..." />
                         </SelectTrigger>
@@ -153,9 +158,11 @@ const AddProductForm = ({ onProductChange, categories = [] }) => {
                         Add Field
                     </Button>
                 </div>
-                <Button type="submit" className="w-full">Add Product</Button>
-                {message && <p className="text-green-500 text-sm mt-2">{message}</p>}
-                {error && <p className="text-destructive text-sm mt-2">{error}</p>}
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? <Loader2 className="animate-spin mr-2" /> : null}
+                    {loading ? "Adding..." : "Add Product"}
+                </Button>
             </form>
         </div>
     );

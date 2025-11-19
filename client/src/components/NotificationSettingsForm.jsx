@@ -6,10 +6,10 @@ import { Button } from '@/components/ui/button.jsx';
 import { Input } from '@/components/ui/input.jsx';
 import { Label } from '@/components/ui/label.jsx';
 import { Switch } from '@/components/ui/switch.jsx';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const NotificationSettingsForm = () => {
-    // Settings ko store karne ke liye state
     const [settings, setSettings] = useState({
         enablePushNotifications: true,
         enableEmailNotifications: false,
@@ -21,10 +21,7 @@ const NotificationSettingsForm = () => {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
 
-    // 1. Page load par current settings fetch karein
     useEffect(() => {
         const fetchSettings = async () => {
             try {
@@ -32,7 +29,7 @@ const NotificationSettingsForm = () => {
                 const res = await api.get('/api/settings/admin');
                 setSettings(res.data);
             } catch (err) {
-                setError('Failed to load settings.');
+                toast.error('Failed to load settings.');
                 console.error(err);
             } finally {
                 setLoading(false);
@@ -41,32 +38,23 @@ const NotificationSettingsForm = () => {
         fetchSettings();
     }, []);
 
-    // 2. Form mein input change handle karein
     const handleChange = (e) => {
         const { id, value } = e.target;
         setSettings((prev) => ({ ...prev, [id]: value }));
     };
 
-    // 3. Toggle switch change handle karein
     const handleSwitchChange = (id, checked) => {
         setSettings((prev) => ({ ...prev, [id]: checked }));
     };
 
-    // 4. Save button click handle karein
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
-        setError(null);
-        setSuccess(null);
         try {
-            // Nayi settings ko PUT request se bhejein
             await api.put('/api/settings/admin', settings);
-            setSuccess('Settings saved successfully!');
-            // Success message ko 3 second baad hatayein
-            setTimeout(() => setSuccess(null), 3000);
+            toast.success('Settings saved successfully!');
         } catch (err) {
-            setError('Failed to save settings.');
-            console.error(err);
+            toast.error('Failed to save settings.');
         } finally {
             setSaving(false);
         }
@@ -114,7 +102,6 @@ const NotificationSettingsForm = () => {
                             }
                         />
                     </div>
-                    {/* Email input (sirf tab dikhega jab email enabled ho) */}
                     {settings.enableEmailNotifications && (
                         <div>
                             <Label htmlFor="adminNotificationEmail">Admin Email</Label>
@@ -143,7 +130,6 @@ const NotificationSettingsForm = () => {
                             }
                         />
                     </div>
-                    {/* Telegram inputs (sirf tab dikhega jab enabled ho) */}
                     {settings.enableTelegramNotifications && (
                         <div className="space-y-3">
                             <div>
@@ -169,18 +155,11 @@ const NotificationSettingsForm = () => {
                     )}
                 </div>
 
-                {/* --- Save Button & Messages --- */}
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-end">
                     <Button type="submit" disabled={saving}>
                         {saving ? <Loader2 className="animate-spin mr-2" /> : null}
                         {saving ? 'Saving...' : 'Save Settings'}
                     </Button>
-                    {success && (
-                        <span className="text-green-500 text-sm flex items-center">
-                            <CheckCircle size={16} className="mr-1" /> {success}
-                        </span>
-                    )}
-                    {error && <span className="text-destructive text-sm">{error}</span>}
                 </div>
             </form>
         </div>

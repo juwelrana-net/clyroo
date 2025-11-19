@@ -12,24 +12,23 @@ import {
     AlertDialogTitle,
     AlertDialogCancel,
 } from '@/components/ui/alert-dialog.jsx';
-import { Loader2, AlertCircle, ShieldAlert } from 'lucide-react';
+import { Loader2, ShieldAlert } from 'lucide-react';
+import { toast } from "sonner"; // <--- Import Toast
 
 const DeleteAdminDialog = ({ isOpen, onClose, onAdminChange, adminToDelete }) => {
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
 
-    // Agar koi admin nahi hai, toh null return karein
     if (!adminToDelete) return null;
 
     const handleDelete = async () => {
         setLoading(true);
-        setError(null);
         try {
             await api.delete(`/api/admin-control/${adminToDelete._id}`);
-            onAdminChange(); // List refresh karein
-            onClose(); // Popup band karein
+            toast.success("Admin account deleted successfully.");
+            onAdminChange();
+            onClose();
         } catch (err) {
-            setError(err.response?.data?.msg || "Failed to delete admin.");
+            toast.error(err.response?.data?.msg || "Failed to delete admin.");
         } finally {
             setLoading(false);
         }
@@ -50,12 +49,6 @@ const DeleteAdminDialog = ({ isOpen, onClose, onAdminChange, adminToDelete }) =>
                         This action cannot be undone.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
-
-                {error && (
-                    <div className="text-destructive-foreground bg-destructive/80 p-3 rounded-lg flex items-center gap-3 text-sm">
-                        <AlertCircle size={16} /> {error}
-                    </div>
-                )}
 
                 <AlertDialogFooter>
                     <AlertDialogCancel onClick={onClose} disabled={loading}>

@@ -1,21 +1,15 @@
 // client/src/pages/OrderInquiryPage.jsx
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import axios from "axios";
-import { Button } from "@/components/ui/button.jsx";
-import { Input } from "@/components/ui/input.jsx";
-import { Label } from "@/components/ui/label.jsx";
-import {
-    Loader2,
-    AlertCircle,
-    CheckCircle,
-    Home,
-    Search,
-} from "lucide-react";
+import { Button } from '@/components/ui/button.jsx';
+import { Input } from '@/components/ui/input.jsx';
+import { Label } from '@/components/ui/label.jsx';
+import { Loader2, CheckCircle, Search } from "lucide-react";
+import { toast } from "sonner"; // <--- Import Toast
 import ClipboardCopy from "@/components/ClipboardCopy.jsx";
 
-// Yeh naya component hai search results dikhaane ke liye
+// Search Result Component (Waisa hi rahega)
 const OrderResult = ({ order }) => {
     return (
         <div className="mt-8">
@@ -27,7 +21,6 @@ const OrderResult = ({ order }) => {
                 </p>
             </div>
 
-            {/* Credentials List */}
             <div className="space-y-4">
                 {order.deliveredCredentials.map((cred, index) => (
                     <div
@@ -59,35 +52,32 @@ const OrderResult = ({ order }) => {
     );
 };
 
-
 const OrderInquiryPage = () => {
     const [orderId, setOrderId] = useState('');
     const [token, setToken] = useState('');
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [orderData, setOrderData] = useState(null); // Search result yahaan store hoga
+    const [orderData, setOrderData] = useState(null);
 
     const handleSearch = async (e) => {
         e.preventDefault();
         setLoading(true);
-        setError(null);
-        setOrderData(null); // Puraana result clear karein
+        setOrderData(null);
 
         if (!orderId || !token) {
-            setError("Please provide both Order ID and Access Token.");
+            toast.error("Please provide both Order ID and Access Token.");
             setLoading(false);
             return;
         }
 
         try {
-            // Humara existing secure API route istemal karein
             const res = await axios.get(
                 `/api/orders/complete/${orderId.trim()}/token/${token.trim()}`
             );
-            setOrderData(res.data); // Credentials ko state mein save karein
+            setOrderData(res.data);
+            toast.success("Order found successfully!"); // Success message
         } catch (err) {
             const errMsg = err.response?.data?.msg || "Failed to fetch order details.";
-            setError(errMsg); // Error dikhayein
+            toast.error(errMsg); // Error toast
         } finally {
             setLoading(false);
         }
@@ -103,7 +93,6 @@ const OrderInquiryPage = () => {
                 You can find these details in your confirmation email or on the success page after payment.
             </p>
 
-            {/* Search Form */}
             <form onSubmit={handleSearch} className="bg-secondary/30 border border-border rounded-lg shadow-lg p-8 space-y-6">
                 <div>
                     <Label htmlFor="orderId">Order ID</Label>
@@ -126,11 +115,7 @@ const OrderInquiryPage = () => {
                     />
                 </div>
 
-                {error && (
-                    <div className="text-destructive bg-destructive/20 p-3 rounded-lg flex items-center gap-3">
-                        <AlertCircle size={20} /> {error}
-                    </div>
-                )}
+                {/* Error Div Hata Diya Gaya Hai (Ab Toast aayega) */}
 
                 <Button type="submit" className="w-full text-lg" disabled={loading}>
                     {loading ? (
@@ -142,7 +127,6 @@ const OrderInquiryPage = () => {
                 </Button>
             </form>
 
-            {/* --- Search Result Yahaan Dikhega --- */}
             {orderData && (
                 <OrderResult order={orderData} />
             )}
