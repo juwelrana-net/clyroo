@@ -6,7 +6,7 @@ const SiteSettings = require("../models/SiteSettings"); // Site settings model
 const sendEmail = require("./sendEmail"); // Hamara email helper
 const axios = require("axios"); // Telegram ke liye
 
-// --- Helper 1: PUSH NOTIFICATION (Jaisa pehle tha, thoda badlaav) ---
+// --- Helper 1: PUSH NOTIFICATION (UPDATED FIX) ---
 const sendPushNotification = async (order, settings) => {
   if (!settings.enablePushNotifications) {
     console.log("Push notifications are disabled. Skipping.");
@@ -21,12 +21,14 @@ const sendPushNotification = async (order, settings) => {
     }
 
     const tokens = adminDevices.map((device) => device.fcmToken);
+
+    // Message payload
     const message = {
       notification: {
         title: "🎉 New Sale!",
         body: `Product: ${order.product.name} (Qty: ${order.quantity}) - $${order.priceAtPurchase}`,
       },
-      tokens: tokens,
+      tokens: tokens, // Saare tokens yahan hain
       webpush: {
         notification: {
           icon: "https://clyroo-server-uorp.onrender.com/favicon.ico",
@@ -39,15 +41,29 @@ const sendPushNotification = async (order, settings) => {
     };
 
     console.log(`Sending push notification to ${tokens.length} device(s)...`);
-    const response = await admin.messaging().sendMulticast(message);
 
-    // ... (failed token logic waisa hi) ...
+    // --- FIX: sendMulticast ki jagah sendEachForMulticast use karein ---
+    const response = await admin.messaging().sendEachForMulticast(message);
+
+    console.log(
+      "Push notification sent. Success count:",
+      response.successCount
+    );
+
+    // Failed tokens ko remove karein
     if (response.failureCount > 0) {
       const failedTokens = [];
       response.responses.forEach((resp, idx) => {
-        if (!resp.success) failedTokens.push(tokens[idx]);
+        if (!resp.success) {
+          // Error log karein taaki debug kar sakein
+          console.error(`Failure for token at index ${idx}:`, resp.error);
+          failedTokens.push(tokens[idx]);
+        }
       });
-      await AdminDevice.deleteMany({ fcmToken: { $in: failedTokens } });
+      if (failedTokens.length > 0) {
+        await AdminDevice.deleteMany({ fcmToken: { $in: failedTokens } });
+        console.log(`Removed ${failedTokens.length} invalid tokens.`);
+      }
     }
   } catch (error) {
     console.error("Error sending push notification:", error.message);
@@ -77,6 +93,7 @@ const sendEmailNotification = async (order, settings) => {
                   <p>Customer: ${order.customerEmail}</p>`;
 
     await sendEmail(adminEmail, subject, html);
+    console.log(`Email sent successfully to ${adminEmail}`);
   } catch (error) {
     console.error("Error sending email notification:", error.message);
   }
@@ -116,6 +133,7 @@ const sendTelegramNotification = async (order, settings) => {
       text: text,
       parse_mode: "Markdown", // Formatting ke liye
     });
+    console.log("Telegram notification sent successfully.");
   } catch (error) {
     console.error(
       "Error sending Telegram notification:",
@@ -124,21 +142,17 @@ const sendTelegramNotification = async (order, settings) => {
   }
 };
 
-// --- MAIN FUNCTION (Jo 'delivery.js' se call hoga) ---
-// Yeh function settings fetch karega aur phir helpers ko call karega
+// --- MAIN FUNCTION ---
 const sendAdminNotifications = async (order) => {
   console.log("Sending admin notifications for order:", order._id);
 
   try {
-    // 1. Database se settings fetch karein
     let settings = await SiteSettings.findOne();
     if (!settings) {
       console.log("Site settings not found. No notifications will be sent.");
       return;
     }
 
-    // 2. Teeno notification types ko trigger karein (woh khud check kar lenge ki enabled hain ya nahi)
-    // Hum `Promise.allSettled` use karte hain taaki agar ek notification fail ho, toh doosre chalte rahein
     await Promise.allSettled([
       sendPushNotification(order, settings),
       sendEmailNotification(order, settings),
@@ -151,5 +165,4 @@ const sendAdminNotifications = async (order) => {
   }
 };
 
-// Puraane export ko badal dein
 module.exports = { sendAdminNotifications };
