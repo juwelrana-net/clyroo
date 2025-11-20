@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://clyroo-server-uorp.onrender.com/api/:path*"
+    }
+  ]
+}
