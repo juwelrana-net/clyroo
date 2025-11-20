@@ -7,8 +7,8 @@ import AdminSidebar from '@/components/admin/AdminSidebar.jsx';
 import AdminHeader from '@/components/admin/AdminHeader.jsx';
 import { Loader2 } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-
-// ... (Saare Popup/Edit Form imports waise hi rahenge) ...
+import { requestNotificationPermission, onMessageListener } from '@/lib/firebase.js';
+import { toast } from "sonner";
 import EditProductForm from '@/components/EditProductForm.jsx';
 import EditCredentialForm from '@/components/EditCredentialForm.jsx';
 import EditPaymentMethodForm from '@/components/EditPaymentMethodForm.jsx';
@@ -18,7 +18,6 @@ import EditProfileForm from '@/components/admin/EditProfileForm.jsx';
 import DeleteAccountDialog from '@/components/admin/DeleteAccountDialog.jsx';
 
 const AdminLayout = () => {
-    // ... (Saari states waise hi rahengi) ...
     const navigate = useNavigate();
     const location = useLocation();
     const [adminUser, setAdminUser] = useState(null);
@@ -51,7 +50,33 @@ const AdminLayout = () => {
     const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
     const [isDeleteAccountOpen, setIsDeleteAccountOpen] = useState(false);
 
-    // ... (Saare functions jaise fetchUser, fetchDashboardStats, etc. waise hi rahenge) ...
+    useEffect(() => {
+        const initNotifications = async () => {
+            try {
+                // 1. Permission maangein aur Token Server ko bhejein
+                const token = await requestNotificationPermission();
+                if (token) {
+                    console.log("Notification setup complete. Token:", token);
+                } else {
+                    console.log("Notification permission denied or failed.");
+                }
+            } catch (err) {
+                console.error("Notification setup error:", err);
+            }
+        };
+
+        // Sirf tab call karein jab user logged in ho
+        initNotifications();
+
+        // Foreground messages sunne ke liye (Jab app khula ho)
+        onMessageListener().then((payload) => {
+            if (payload) {
+                toast.info(payload.notification.title + ": " + payload.notification.body);
+            }
+        });
+
+    }, []); // Empty dependency array (sirf mount hone par chalega)
+
     const fetchUser = async () => {
         try {
             const res = await api.get('/api/profile/me');

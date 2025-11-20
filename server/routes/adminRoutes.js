@@ -379,4 +379,56 @@ router.get("/stats/charts", authMiddleware, async (req, res) => {
   }
 });
 
+// ROUTE 10: TEST NOTIFICATION SYSTEM ---
+// POST /api/admin/test-notification
+router.post("/test-notification", authMiddleware, async (req, res) => {
+  try {
+    // 1. Admin ka email nikalo (taki email usko jaye)
+    const adminUser = await require("../models/User").findById(req.user.id);
+    
+    // 2. Koi bhi ek product dhundo (Test ke liye)
+    const product = await Product.findOne();
+    if (!product) {
+      return res.status(404).json({ msg: "No products found to test with. Please add a product first." });
+    }
+
+    // 3. Ek Fake Order banao
+    const dummyOrder = new Order({
+      product: product._id,
+      quantity: 1,
+      customerEmail: adminUser.email, // Email admin ko jayega
+      priceAtPurchase: 0, // Free test
+      status: "Pending",
+      customerAccessToken: "TEST-TOKEN-" + Date.now(),
+      paymentGateway: "Test-System"
+    });
+
+    await dummyOrder.save();
+
+    // 4. Order ko manually deliver karo (Yeh notifications trigger karega)
+    // Note: Hum stock deduct nahi karna chahte test mein, isliye hum
+    // 'deliverProduct' ki jagah seedha notification function call kar sakte hain
+    // LEKIN real testing ke liye 'deliverProduct' best hai.
+    // Agar stock kam nahi karna, toh hum ek Temporary Credential banakar bhej sakte hain.
+    
+    // Simplified: Hum seedha Notification Sender call karenge (Stock bachane ke liye)
+    const { sendAdminNotifications } = require("../utils/notificationSender");
+    
+    // Order object ko populate karo taaki notification function ko product name mile
+    await dummyOrder.populate("product", "name");
+    
+    // Real Notification Trigger!
+    await sendAdminNotifications(dummyOrder);
+
+    // Baad mein dummy order delete kar do taaki database ganda na ho
+    await Order.findByIdAndDelete(dummyOrder._id);
+
+    res.json({ msg: "Test notifications sent successfully!" });
+
+  } catch (err) {
+    console.error("Test notification error:", err.message);
+    res.status(500).json({ msg: "Failed to send test notifications", error: err.message });
+  }
+});
+
 module.exports = router;
