@@ -7,8 +7,24 @@ require("dotenv").config();
 
 // Firebase Admin SDK
 const admin = require("firebase-admin");
-// Render secret files ko hamesha /etc/secrets/ folder mein rakhta hai
-const serviceAccount = require("/etc/secrets/serviceAccountKey.json");
+
+// --- FIX START: FIREBASE INITIALIZATION ---
+try {
+  // Render secret files ko hamesha /etc/secrets/ folder mein rakhta hai
+  const serviceAccount = require("/etc/secrets/serviceAccountKey.json");
+
+  // YEH LINE MISSING THI - Firebase ko initialize karna zaroori hai
+  if (!admin.apps.length) {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+    });
+    console.log("🔥 Firebase Admin Initialized Successfully");
+  }
+} catch (error) {
+  console.error("❌ Firebase Init Error:", error.message);
+  // Agar file nahi mili (jaise local development mein), toh error log karein
+}
+// --- FIX END ---
 
 // Routes ko import karein
 const productRoutes = require("./routes/productRoutes");
@@ -29,10 +45,9 @@ const app = express();
 // Middleware
 app.use(
   express.json({
-    // verify function se hum raw request body ko access kar sakte hain
     verify: (req, res, buf) => {
       if (req.originalUrl.includes("/webhook")) {
-        req.rawBody = buf.toString(); // Raw data ko req.rawBody mein save karein
+        req.rawBody = buf.toString();
       }
     },
   })
