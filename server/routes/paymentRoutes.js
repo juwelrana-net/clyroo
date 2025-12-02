@@ -60,7 +60,7 @@ router.post("/nowpayments/create", async (req, res) => {
       return res.status(400).json({ msg: "Payment coin is required." });
     }
 
-    // --- SMART CURRENCY LOGIC (New Fix) ---
+    // --- SMART CURRENCY LOGIC ---
     // Agar Stablecoin hai, to hum 'usd' nahi balki wahi coin code bhejenge.
     // Isse 5 USD ka matlab '5 USDT' hoga, na ki conversion rate wala amount.
     const stableCoins = [
