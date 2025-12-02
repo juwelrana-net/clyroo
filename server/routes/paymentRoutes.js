@@ -11,164 +11,160 @@ const NOWPAYMENTS_API_URL = "https://api.nowpayments.io/v1";
 const NOWPAYMENTS_API_KEY = process.env.NOWPAYMENTS_API_KEY;
 const NOWPAYMENTS_IPN_SECRET = process.env.NOWPAYMENTS_IPN_SECRET;
 
-// Base fiat currency (NOWPayments panel me bhi tumne USD rakha hai)
-const BASE_FIAT_CURRENCY = (
-  process.env.NOWPAYMENTS_BASE_FIAT_CURRENCY || "usd"
-).toLowerCase();
+// --- UTILITY: Error Handler ---
+const handlePaymentError = (err, coinApiCode) => {
+  // Agar NOWPayments ne response diya hai
+  if (err.response && err.response.data) {
+    const msg = err.response.data.message || JSON.stringify(err.response.data);
+    console.error(`[NOWPayments Error] ${msg}`);
 
-/**
- * NOTE:
- *  - price_amount  => tumhare store ka amount (e.g. 5.00)
- *  - price_currency => fiat (usd)
- *  - pay_currency   => user ka coin (usdtbsc, usdtmatic, ...)
- */
+    // Agar Invoice create karte waqt error aaya ki amount chhota hai
+    if (
+      msg.includes("amount") &&
+      (msg.includes("small") || msg.includes("min"))
+    ) {
+      return {
+        status: 400,
+        json: {
+          msg: `The order amount ($5.00) is too small for ${coinApiCode.toUpperCase()} according to the payment processor. Please try a different coin (like TRX or LTC) or contact support if you believe this is an error.`,
+          technical_details: msg,
+        },
+      };
+    }
 
-// ------------------ CREATE INVOICE ------------------ //
+    // API Key Issue
+    if (msg.includes("API key")) {
+      return {
+        status: 500,
+        json: { msg: "Server Error: Payment gateway configuration issue." },
+      };
+    }
+  }
+
+  // Default Error
+  return {
+    status: 500,
+    json: {
+      msg: "Failed to initiate payment gateway. Please try again later.",
+    },
+  };
+};
+
+// --- ROUTE 1: Create Invoice (Direct Mode) ---
 router.post("/nowpayments/create", async (req, res) => {
   const { orderId, coinApiCode } = req.body;
 
   try {
-    if (!orderId || !coinApiCode) {
-      return res.status(400).json({
-        msg: "Order ID aur coin API code dono required hain.",
-      });
-    }
-
+    // 1. Order Validation
     const order = await Order.findById(orderId);
     if (!order || order.status !== "Pending") {
-      return res.status(404).json({ msg: "Valid order nahi mila." });
+      return res
+        .status(404)
+        .json({ msg: "Order not found or already active." });
     }
 
-    // Price sanity check
-    const rawPrice = Number(order.priceAtPurchase);
-    if (!Number.isFinite(rawPrice) || rawPrice <= 0) {
-      return res.status(400).json({
-        msg: "Invalid order price. Please contact support.",
-      });
+    if (!coinApiCode) {
+      return res.status(400).json({ msg: "Payment coin is required." });
     }
 
-    // EXACT 2 decimal places (5 -> 5.00, 5.5 -> 5.50)
-    const priceAmount = Number(rawPrice.toFixed(2));
+    console.log(
+      `[Payment Request] Order: ${orderId} | Price: $${order.priceAtPurchase} -> Coin: ${coinApiCode}`
+    );
 
-    const payload = {
-      price_amount: priceAmount,
-      price_currency: BASE_FIAT_CURRENCY, // "usd"
-      pay_currency: coinApiCode, // e.g. "usdtbsc" / "usdtmatic"
-      order_id: order._id.toString(),
-      ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
-      is_fee_paid_by_user: true, // fee user pay karega
-    };
-
+    // 2. Direct Payment Creation (NO PRE-CHECK)
+    // Humne yahan se 'min-amount' check hata diya hai.
+    // Hum seedha invoice create karne ka try karenge.
+    // Agar Custody enabled hai, toh ye $5 accept kar lega.
     const response = await axios.post(
       `${NOWPAYMENTS_API_URL}/payment`,
-      payload,
+      {
+        price_amount: order.priceAtPurchase, // e.g. 5.00
+        price_currency: "usd", // Base currency USD
+        pay_currency: coinApiCode, // Selected Crypto
+        order_id: order._id.toString(),
+        ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
+
+        // Aapki requirement: "5 hai to 5 hi aana chahiye"
+        // False = Fees aapke account se kategi, user ko exact amount dikhega.
+        is_fee_paid_by_user: false,
+      },
       { headers: { "x-api-key": NOWPAYMENTS_API_KEY } }
     );
 
+    // 3. Success - Update DB
     order.gatewayPaymentId = response.data.payment_id;
     order.paymentGateway = "NowPayments";
     order.status = "Awaiting-Payment";
     await order.save();
 
-    return res.json(response.data);
+    console.log(`[Payment Created] ID: ${response.data.payment_id}`);
+    res.json(response.data);
   } catch (err) {
-    console.error("--- NOWPAYMENTS CREATE ERROR ---");
-    const providerErr = err.response?.data;
-    if (providerErr) console.error(providerErr);
-    else console.error(err.message);
-
-    const providerMessage = providerErr?.message || "";
-    const lowerMsg = providerMessage.toLowerCase();
-
-    // yahi error tum log me dekh rahe ho: amountFrom/amountTo is too small
-    if (
-      lowerMsg.includes("amountfrom is too small") ||
-      lowerMsg.includes("amountto is too small")
-    ) {
-      return res.status(400).json({
-        msg:
-          "Selected coin ke liye NOWPayments ka minimum amount isse zyada hai. " +
-          "Please price ya quantity badhao, ya koi aur coin select karo.",
-        code: "MIN_AMOUNT_TOO_SMALL",
-        providerMessage,
-      });
-    }
-
-    return res.status(500).json({
-      msg: "Failed to create NOWPayments invoice.",
-      code: providerErr?.code || "NOWPAYMENTS_ERROR",
-      providerError: providerErr || err.message,
-    });
+    // 4. Handle Errors (Agar Invoice Creation fail hota hai)
+    const errorResponse = handlePaymentError(err, coinApiCode);
+    return res.status(errorResponse.status).json(errorResponse.json);
   }
 });
 
-// ------------------ WEBHOOK ------------------ //
+// --- ROUTE 2: Webhook (Secure & Verified) ---
 router.post("/nowpayments/webhook", async (req, res) => {
-  // yahan rawBody already index.js me set ho raha hai
   try {
+    // 1. Signature Verification
     const hmac = crypto.createHmac("sha512", NOWPAYMENTS_IPN_SECRET);
     hmac.update(req.rawBody);
     const signature = hmac.digest("hex");
 
     if (req.headers["x-nowpayments-sig"] !== signature) {
-      console.error("!!! INVALID WEBHOOK SIGNATURE !!!");
-      console.error(
-        "NOWPayments se mila header:",
-        req.headers["x-nowpayments-sig"]
-      );
-      console.error("Humne jo calculate kiya:", signature);
-
+      console.warn("⚠️ Invalid Webhook Signature received.");
       return res.status(401).send("Invalid Signature");
     }
   } catch (e) {
-    console.error("!!! SIGNATURE VERIFICATION FAILED !!!", e.message);
-    return res.status(500).send("Signature verification failed");
+    console.error("Webhook Signature Error:", e.message);
+    return res.status(500).send("Verification failed");
   }
 
   const { payment_status, order_id } = req.body;
-
-  console.log(
-    `Webhook received for Order: ${order_id} | Status: ${payment_status}`
-  );
+  console.log(`[Webhook] Order: ${order_id} | Status: ${payment_status}`);
 
   try {
+    // 2. Find Order
     const order = await Order.findOne({ _id: order_id }).populate(
       "product",
       "name"
     );
 
     if (!order) {
-      return res.status(200).send("Webhook received, order not found.");
+      return res.status(200).send("Order not found, stopped retries.");
     }
 
+    // 3. Idempotency Check
     if (
-      order.status === "Completed" ||
-      order.status === "Failed" ||
-      order.status === "Partially_paid" ||
-      order.status === "Cancelled" ||
-      order.status === "Expired"
+      [
+        "Completed",
+        "Failed",
+        "Partially_paid",
+        "Cancelled",
+        "Expired",
+      ].includes(order.status)
     ) {
-      return res
-        .status(200)
-        .send("Webhook received, but order already processed or failed.");
+      return res.status(200).send("Order already processed.");
     }
 
+    // 4. Status Handling
     if (payment_status === "finished" || payment_status === "confirmed") {
+      // Payment Done -> Deliver Product
       await deliverProduct(order);
-      return res.status(200).send("Webhook received and product delivered.");
+      console.log(`[Success] Order ${order_id} delivered.`);
+      return res.status(200).send("Product delivered.");
     } else {
+      // Update status only
       order.status = payment_status;
       await order.save();
-
-      return res
-        .status(200)
-        .send(
-          `Webhook received and order status updated to ${payment_status}.`
-        );
+      return res.status(200).send(`Status updated to ${payment_status}`);
     }
   } catch (err) {
-    console.error("NOWPayments Webhook DB Error:", err);
-    return res.status(500).send("Server error processing webhook");
+    console.error("Webhook Processing Error:", err.message);
+    res.status(500).send("Server error");
   }
 });
 
