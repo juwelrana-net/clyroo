@@ -27,28 +27,36 @@ router.post("/nowpayments/create", async (req, res) => {
       return res.status(400).json({ msg: "Coin API code is required" });
     }
 
+    console.log(
+      `[Payment Init] Order: ${orderId} | Price: $${order.priceAtPurchase} | Coin: ${coinApiCode}`
+    );
+
     // --- STEP 1: MINIMUM AMOUNT CHECK ---
-    // Pehle check karte hain ki $5 USD us coin ke liye valid hai ya nahi
+    // Hum check karenge ki kya $5 USD is coin ke liye kaafi hai?
     try {
+      // Currency FROM 'usd' rakha hai kyunki product price USD mein hai
       const minAmountRes = await axios.get(
         `${NOWPAYMENTS_API_URL}/min-amount?currency_from=usd&currency_to=${coinApiCode}`,
         { headers: { "x-api-key": NOWPAYMENTS_API_KEY } }
       );
 
       const minAmount = minAmountRes.data.min_amount;
+      console.log(
+        `[Min Check] Required: $${minAmount} | Order: $${order.priceAtPurchase}`
+      );
 
       // Agar order price minimum se kam hai
+      // Note: Thoda buffer (0.1) rakhte hain rounding errors ke liye
       if (order.priceAtPurchase < minAmount) {
         return res.status(400).json({
           msg: `Order amount ($${
             order.priceAtPurchase
-          }) is too small for ${coinApiCode.toUpperCase()}. Minimum required is $${minAmount}. Please select a different coin (like USDT-BSC or MATIC).`,
+          }) is too small for ${coinApiCode.toUpperCase()}. Minimum required by network is $${minAmount}. Please add this wallet to NOWPayments settings or choose a cheaper coin (like TRX or BSC).`,
         });
       }
     } catch (minErr) {
-      console.error("Minimum amount check failed:", minErr.message);
-      // Agar minimum check fail ho jaye (API issue), tab bhi hum aage badhne ka try karenge
-      // par log kar denge.
+      console.error("Minimum amount check warning:", minErr.message);
+      // Agar API fail ho jaye, to hum rokhenge nahi, Invoice create karne ka try karenge.
     }
 
     // --- STEP 2: CREATE INVOICE ---
@@ -56,15 +64,13 @@ router.post("/nowpayments/create", async (req, res) => {
       `${NOWPAYMENTS_API_URL}/payment`,
       {
         price_amount: order.priceAtPurchase, // e.g., 5.00
-        price_currency: "usd", // [FIX] Hamesha 'usd' rahega kyunki aapka DB price USD main hai
-        pay_currency: coinApiCode, // Customer is coin main pay karega (e.g., usdtbsc)
+        price_currency: "usd", // Hamesha 'usd' rakhein taaki value fix rahe
+        pay_currency: coinApiCode, // User is coin mein pay karega
         order_id: order._id.toString(),
         ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
 
-        // [FIX] Exact Price Issue:
-        // Agar aap 'true' karte hain, to customer pay karega: $5 + Network Fee. (Invoice > 5 dikhega)
-        // Agar aap 'false' karte hain, to customer pay karega: Exactly value of $5. (Network fee aapke profit se kategi)
-        // Aapki requirement "5 hai to 5 hi aana chahiye" ke liye isse FALSE rakhein.
+        // Aapne kaha "5 hai to 5 hi aana chahiye", isliye fee user se NAHI lenge.
+        // Fees aapke end se kategi.
         is_fee_paid_by_user: false,
       },
       { headers: { "x-api-key": NOWPAYMENTS_API_KEY } }
@@ -76,33 +82,30 @@ router.post("/nowpayments/create", async (req, res) => {
     order.status = "Awaiting-Payment";
     await order.save();
 
+    console.log(`[Invoice Created] ID: ${response.data.payment_id}`);
     res.json(response.data);
   } catch (err) {
     console.error("--- NOWPAYMENTS CREATE ERROR ---");
-    // Detailed error logging
-    if (err.response) {
-      console.error("Data:", err.response.data);
-      console.error("Status:", err.response.status);
-    } else {
-      console.error("Message:", err.message);
-    }
+    // Agar NOWPayments specific error bhejta hai
+    const errorData = err.response ? err.response.data : {};
+    const errorMessage = errorData.message || err.message;
+    console.error("Error Detail:", errorMessage);
 
-    // Agar error "amountFrom is too small" hai, to user friendly message dein
-    const errorMsg = err.response?.data?.message || err.message;
-    if (errorMsg.includes("too small")) {
+    // Specific "Too Small" error handling
+    if (errorMessage && errorMessage.includes("amount is too small")) {
       return res.status(400).json({
-        msg: `The amount is too small for ${coinApiCode.toUpperCase()}. Please choose a cheaper network (like USDT-BEP20 or Polygon).`,
+        msg: `Order amount is too small for this coin. This usually happens if you haven't added the ${coinApiCode.toUpperCase()} wallet address in NOWPayments settings (causing a swap fee).`,
       });
     }
 
     res.status(500).json({
       msg: "Failed to create payment invoice.",
-      error: errorMsg,
+      error: errorMessage,
     });
   }
 });
 
-// --- NOWPAYMENTS ROUTE 2: Webhook (Same as before, no changes needed logic-wise) ---
+// --- NOWPAYMENTS ROUTE 2: Webhook (Standard Logic) ---
 router.post("/nowpayments/webhook", async (req, res) => {
   try {
     const hmac = crypto.createHmac("sha512", NOWPAYMENTS_IPN_SECRET);
@@ -118,9 +121,7 @@ router.post("/nowpayments/webhook", async (req, res) => {
   }
 
   const { payment_status, order_id } = req.body;
-  console.log(
-    `Webhook received for Order: ${order_id} | Status: ${payment_status}`
-  );
+  console.log(`Webhook: Order ${order_id} -> ${payment_status}`);
 
   try {
     const order = await Order.findOne({ _id: order_id }).populate(
@@ -128,10 +129,9 @@ router.post("/nowpayments/webhook", async (req, res) => {
       "name"
     );
 
-    if (!order) {
-      return res.status(200).send("Order not found.");
-    }
+    if (!order) return res.status(200).send("Order not found.");
 
+    // Processed orders ko skip karein
     if (
       [
         "Completed",
@@ -141,21 +141,20 @@ router.post("/nowpayments/webhook", async (req, res) => {
         "Expired",
       ].includes(order.status)
     ) {
-      return res.status(200).send("Order already processed.");
+      return res.status(200).send("Already processed.");
     }
 
-    // Payment Logic
     if (payment_status === "finished" || payment_status === "confirmed") {
       await deliverProduct(order);
       return res.status(200).send("Product delivered.");
     } else {
       order.status = payment_status;
       await order.save();
-      res.status(200).send(`Status updated to ${payment_status}.`);
+      res.status(200).send(`Status updated: ${payment_status}`);
     }
   } catch (err) {
-    console.error("NOWPayments Webhook DB Error:", err);
-    res.status(500).send("Server error processing webhook");
+    console.error("Webhook Error:", err.message);
+    res.status(500).send("Server error");
   }
 });
 
