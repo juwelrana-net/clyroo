@@ -13,12 +13,10 @@ const NOWPAYMENTS_IPN_SECRET = process.env.NOWPAYMENTS_IPN_SECRET;
 
 // --- UTILITY: Error Handler ---
 const handlePaymentError = (err, coinApiCode) => {
-  // Agar NOWPayments ne response diya hai
   if (err.response && err.response.data) {
     const msg = err.response.data.message || JSON.stringify(err.response.data);
     console.error(`[NOWPayments Error] ${msg}`);
 
-    // Agar Invoice create karte waqt error aaya ki amount chhota hai
     if (
       msg.includes("amount") &&
       (msg.includes("small") || msg.includes("min"))
@@ -26,13 +24,11 @@ const handlePaymentError = (err, coinApiCode) => {
       return {
         status: 400,
         json: {
-          msg: `The order amount ($5.00) is too small for ${coinApiCode.toUpperCase()} according to the payment processor. Please try a different coin (like TRX or LTC) or contact support if you believe this is an error.`,
+          msg: `The order amount is too small for ${coinApiCode.toUpperCase()}. Please add this wallet to NOWPayments Whitelist or choose a different coin (like TRX/LTC).`,
           technical_details: msg,
         },
       };
     }
-
-    // API Key Issue
     if (msg.includes("API key")) {
       return {
         status: 500,
@@ -40,8 +36,6 @@ const handlePaymentError = (err, coinApiCode) => {
       };
     }
   }
-
-  // Default Error
   return {
     status: 500,
     json: {
@@ -50,12 +44,11 @@ const handlePaymentError = (err, coinApiCode) => {
   };
 };
 
-// --- ROUTE 1: Create Invoice (Direct Mode) ---
+// --- NOWPAYMENTS ROUTE 1: Create Invoice ---
 router.post("/nowpayments/create", async (req, res) => {
   const { orderId, coinApiCode } = req.body;
 
   try {
-    // 1. Order Validation
     const order = await Order.findById(orderId);
     if (!order || order.status !== "Pending") {
       return res
@@ -67,55 +60,74 @@ router.post("/nowpayments/create", async (req, res) => {
       return res.status(400).json({ msg: "Payment coin is required." });
     }
 
+    // --- SMART CURRENCY LOGIC (New Fix) ---
+    // Agar Stablecoin hai, to hum 'usd' nahi balki wahi coin code bhejenge.
+    // Isse 5 USD ka matlab '5 USDT' hoga, na ki conversion rate wala amount.
+    const stableCoins = [
+      "usdt",
+      "usdttrc20",
+      "usdtbsc",
+      "usdtmatic",
+      "usdtsol",
+      "usdtpolygon",
+      "usdterc20",
+      "usdc",
+      "busd",
+      "dai",
+    ];
+
+    let finalPriceCurrency = "usd"; // Default: Bitcoin waghaira ke liye USD rakhein
+
+    // Agar selected coin stable coin list mein hai, to Exact Amount charge karein
+    if (stableCoins.includes(coinApiCode.toLowerCase())) {
+      finalPriceCurrency = coinApiCode;
+    }
+
     console.log(
-      `[Payment Request] Order: ${orderId} | Price: $${order.priceAtPurchase} -> Coin: ${coinApiCode}`
+      `[Payment Request] Order: ${orderId} | Price: ${order.priceAtPurchase} | Currency: ${finalPriceCurrency}`
     );
 
-    // 2. Direct Payment Creation (NO PRE-CHECK)
-    // Humne yahan se 'min-amount' check hata diya hai.
-    // Hum seedha invoice create karne ka try karenge.
-    // Agar Custody enabled hai, toh ye $5 accept kar lega.
+    // --- API CALL ---
     const response = await axios.post(
       `${NOWPAYMENTS_API_URL}/payment`,
       {
         price_amount: order.priceAtPurchase, // e.g. 5.00
-        price_currency: "usd", // Base currency USD
-        pay_currency: coinApiCode, // Selected Crypto
+        price_currency: finalPriceCurrency, // Ab ye Smart Logic use karega
+        pay_currency: coinApiCode, // User ka selected coin
         order_id: order._id.toString(),
         ipn_callback_url: `${process.env.APP_BASE_URL}/api/payment/nowpayments/webhook`,
 
-        // Aapki requirement: "5 hai to 5 hi aana chahiye"
-        // False = Fees aapke account se kategi, user ko exact amount dikhega.
+        // Exact 5 dikhane ke liye False hi rakhna hai
         is_fee_paid_by_user: false,
       },
       { headers: { "x-api-key": NOWPAYMENTS_API_KEY } }
     );
 
-    // 3. Success - Update DB
+    // Database update
     order.gatewayPaymentId = response.data.payment_id;
     order.paymentGateway = "NowPayments";
     order.status = "Awaiting-Payment";
     await order.save();
 
-    console.log(`[Payment Created] ID: ${response.data.payment_id}`);
+    console.log(
+      `[Payment Created] ID: ${response.data.payment_id} | Amount: ${response.data.pay_amount}`
+    );
     res.json(response.data);
   } catch (err) {
-    // 4. Handle Errors (Agar Invoice Creation fail hota hai)
     const errorResponse = handlePaymentError(err, coinApiCode);
     return res.status(errorResponse.status).json(errorResponse.json);
   }
 });
 
-// --- ROUTE 2: Webhook (Secure & Verified) ---
+// --- NOWPAYMENTS ROUTE 2: Webhook ---
 router.post("/nowpayments/webhook", async (req, res) => {
   try {
-    // 1. Signature Verification
     const hmac = crypto.createHmac("sha512", NOWPAYMENTS_IPN_SECRET);
     hmac.update(req.rawBody);
     const signature = hmac.digest("hex");
 
     if (req.headers["x-nowpayments-sig"] !== signature) {
-      console.warn("⚠️ Invalid Webhook Signature received.");
+      console.warn("⚠️ Invalid Webhook Signature.");
       return res.status(401).send("Invalid Signature");
     }
   } catch (e) {
@@ -127,17 +139,13 @@ router.post("/nowpayments/webhook", async (req, res) => {
   console.log(`[Webhook] Order: ${order_id} | Status: ${payment_status}`);
 
   try {
-    // 2. Find Order
     const order = await Order.findOne({ _id: order_id }).populate(
       "product",
       "name"
     );
 
-    if (!order) {
-      return res.status(200).send("Order not found, stopped retries.");
-    }
+    if (!order) return res.status(200).send("Order not found, stop retry.");
 
-    // 3. Idempotency Check
     if (
       [
         "Completed",
@@ -150,14 +158,10 @@ router.post("/nowpayments/webhook", async (req, res) => {
       return res.status(200).send("Order already processed.");
     }
 
-    // 4. Status Handling
     if (payment_status === "finished" || payment_status === "confirmed") {
-      // Payment Done -> Deliver Product
       await deliverProduct(order);
-      console.log(`[Success] Order ${order_id} delivered.`);
       return res.status(200).send("Product delivered.");
     } else {
-      // Update status only
       order.status = payment_status;
       await order.save();
       return res.status(200).send(`Status updated to ${payment_status}`);
