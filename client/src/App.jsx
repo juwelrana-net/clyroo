@@ -184,7 +184,7 @@ function App() {
     if (link.type === 'whatsapp') {
       return (
         <Button key={link._id} asChild className="w-full bg-green-500 hover:bg-green-600 text-white">
-          <a href={`httpshttps://wa.me/${link.value}`} target="_blank" rel="noopener noreferrer">
+          <a href={`https://wa.me/${link.value}`} target="_blank" rel="noopener noreferrer">
             <MessageCircle className="mr-2 h-5 w-5" /> {link.displayText}
           </a>
         </Button>
@@ -193,7 +193,7 @@ function App() {
     if (link.type === 'telegram') {
       return (
         <Button key={link._id} asChild className="w-full bg-blue-500 hover:bg-blue-600 text-white">
-          <a href={`httpshttps://t.me/${link.value}`} target="_blank" rel="noopener noreferrer">
+          <a href={`https://t.me/${link.value}`} target="_blank" rel="noopener noreferrer">
             <Send className="mr-2 h-5 w-5" /> {link.displayText}
           </a>
         </Button>
